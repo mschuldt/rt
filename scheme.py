@@ -74,10 +74,10 @@ def apply_primitive(procedure, args, env):
     >>> apply_primitive(plus, twos, env)
     4
     """
-    def convert_pair_to_list(pair_list):
-        if pair_list is nil:
+    def convert_pair_to_list(pair):
+        if pair is nil:
             return []
-        return [pair_list.first] + convert_pair_to_list(pair_list.second)
+        return [pair.first] + convert_pair_to_list(pair.second)
     args = convert_pair_to_list(args)
     if procedure.use_env is True:
         args.append(env)
@@ -218,7 +218,7 @@ def do_define_form(vals, env):
 def do_quote_form(vals):
     """Evaluate a quote form with parameters VALS."""
     check_form(vals, 1, 1)
-    "*** YOUR CODE HERE ***"
+    return vals.first
 
 
 def do_let_form(vals, env):
