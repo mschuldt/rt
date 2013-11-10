@@ -197,7 +197,13 @@ def do_lambda_form(vals, env):
     check_form(vals, 2)
     formals = vals[0]
     check_formals(formals)
-    "*** YOUR CODE HERE ***"
+    body = vals.second
+    if len(body) > 1:
+        body = Pair('begin', body)
+    else:
+        body = body.first
+        
+    return LambdaProcedure(formals, body, env)
 
 def do_mu_form(vals):
     """Evaluate a mu form with parameters VALS."""
