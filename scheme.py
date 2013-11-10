@@ -198,11 +198,7 @@ def do_lambda_form(vals, env):
     formals = vals[0]
     check_formals(formals)
     body = vals.second
-    if len(body) > 1:
-        body = Pair('begin', body)
-    else:
-        body = body.first
-        
+    body = Pair('begin', body) if len(body) > 1 else body.first
     return LambdaProcedure(formals, body, env)
 
 def do_mu_form(vals):
