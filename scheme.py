@@ -137,7 +137,8 @@ class Frame:
         frame = Frame(self)
         if len(formals) != len(vals):
             raise SchemeError("wrong number of arguments")
-        list(map(lambda x: frame.define(*x), zip(formals,vals)))
+        for formal, val in zip(formals, vals):
+            frame.define(formal,val)
         return frame
 
     def define(self, sym, val):
