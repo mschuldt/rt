@@ -106,7 +106,11 @@ class Frame:
 
     def lookup(self, symbol):
         """Return the value bound to SYMBOL.  Errors if SYMBOL is not found."""
-        "*** YOUR CODE HERE ***"
+        val = self.bindings.get(symbol)
+        if symbol in self.bindings:
+            return self.bindings[symbol]
+        if self.parent:
+            return self.parent.lookup(symbol)
         raise SchemeError("unknown identifier: {0}".format(str(symbol)))
 
 
