@@ -217,7 +217,11 @@ def do_define_form(vals, env):
         env.define(target, scheme_eval(vals[1], env))
         return target
     elif isinstance(target, Pair):
-        "*** YOUR CODE HERE ***"
+        name = target.first
+        if not scheme_symbolp(name):
+            raise SchemeError("function name must a symbol. got {0}".format(type(name)))
+        env.define(name, do_lambda_form(Pair(target.second, vals.second), env))
+        return target
     else:
         raise SchemeError("bad argument to define")
 
@@ -292,7 +296,6 @@ def do_cond_form(vals, env):
             "*** YOUR CODE HERE ***"
     return okay
 
-@trace
 def do_begin_form(vals, env):
     """Evaluate begin form with parameters VALS in environment ENV."""
     check_form(vals, 1)
