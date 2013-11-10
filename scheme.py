@@ -238,17 +238,25 @@ def do_quote_form(vals):
 
 def do_let_form(vals, env):
     """Evaluate a let form with parameters VALS in environment ENV."""
-    check_form(vals, 2)
+    check_form (vals, 2)
     bindings = vals[0]
     exprs = vals.second
     if not scheme_listp(bindings):
         raise SchemeError("bad bindings list in let form")
 
-    # Add a frame containing bindings
     names, values = nil, nil
-    "*** YOUR CODE HERE ***"
-    new_env = env.make_call_frame(names, values)
+    while bindings is not nil:
+        binding, bindings  = bindings.first, bindings.second
+        if not scheme_symbolp(binding.first):
+            raise SchemeError("let: bad bindings syntax (not an identifier)")
+        names = Pair(binding.first, names)
+        if len(binding.second) > 1:
+            raise SchemeError("let: bad bindings syntax (expected one form)")
+        values = Pair(scheme_eval(binding.second.first,env),values)
 
+    # Add a frame containing bindings    
+    new_env = env.make_call_frame(names, values)
+    
     # Evaluate all but the last expression after bindings, and return the last
     last = len(exprs)-1
     for i in range(0, last):
