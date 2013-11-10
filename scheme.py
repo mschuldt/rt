@@ -133,7 +133,10 @@ class Frame:
         <{a: 1, b: 2, c: 3} -> <Global Frame>>
         """
         frame = Frame(self)
-        "*** YOUR CODE HERE ***"
+        if len(formals) != len(vals):
+            raise SchemeError("wrong number of arguments")
+        for formal, val in zip(formals, vals):
+            frame.define(formal,val)
         return frame
 
     def define(self, sym, val):
