@@ -6,10 +6,10 @@ from scheme_primitives import *
 from scheme_reader import *
 from ucb import main, trace
 
+
 ##############
 # Eval/Apply #
 ##############
-
 def scheme_eval(expr, env):
     """Evaluate Scheme expression EXPR in environment ENV.
 
@@ -52,7 +52,6 @@ def scheme_eval(expr, env):
         procedure = scheme_eval(first, env)
         args = rest.map(lambda operand: scheme_eval(operand, env))
         return scheme_apply(procedure, args, env)
-
 
 def scheme_apply(procedure, args, env):
     """Apply Scheme PROCEDURE to argument values ARGS in environment ENV."""
@@ -286,10 +285,14 @@ def do_cond_form(vals, env):
             "*** YOUR CODE HERE ***"
     return okay
 
+@trace
 def do_begin_form(vals, env):
     """Evaluate begin form with parameters VALS in environment ENV."""
     check_form(vals, 1)
-    "*** YOUR CODE HERE ***"
+    if vals.second is nil:
+        return vals.first
+    scheme_eval(vals.first, env)
+    return do_begin_form(vals.second, env)
 
 LOGIC_FORMS = {
         "and": do_and_form,

@@ -166,7 +166,13 @@ def read_tail(src):
         if src.current() == ")":
             src.pop()
             return nil
-        "*** YOUR CODE HERE ***"
+        if src.current() == ".":
+            src.pop()
+            val = scheme_read(src)
+            if src.pop() != ")":
+                raise SyntaxError("read: illegal use of `.'")
+            return val
+            
         first = scheme_read(src)
         rest = read_tail(src)
         return Pair(first, rest)
