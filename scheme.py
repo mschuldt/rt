@@ -60,9 +60,9 @@ def scheme_apply(procedure, args, env):
     elif isinstance(procedure, LambdaProcedure):
         frame = procedure.env.make_call_frame(procedure.formals, args)
         return scheme_eval(procedure.body, frame)
-        
     elif isinstance(procedure, MuProcedure):
-        "*** YOUR CODE HERE ***"
+        frame = env.make_call_frame(procedure.formals, args)
+        return scheme_eval(procedure.body, frame)
     else:
         raise SchemeError("Cannot call {0}".format(str(procedure)))
 
@@ -137,7 +137,8 @@ class Frame:
         frame = Frame(self)
         if len(formals) != len(vals):
             raise SchemeError("wrong number of arguments")
-        list(map(lambda x: frame.define(*x), zip(formals,vals)))
+        for formal, val in zip(formals, vals):
+            frame.define(formal, val)
         return frame
 
     def define(self, sym, val):
@@ -195,7 +196,6 @@ class MuProcedure:
 #################
 # Special forms #
 #################
-
 def do_lambda_form(vals, env):
     """Evaluate a lambda form with parameters VALS in environment ENV."""
     check_form(vals, 2)
@@ -210,7 +210,9 @@ def do_mu_form(vals):
     check_form(vals, 2)
     formals = vals[0]
     check_formals(formals)
-    "*** YOUR CODE HERE ***"
+    body = vals.second
+    body = Pair('begin', body) if len(body) > 1 else body.first
+    return MuProcedure(formals, body)
 
 def do_define_form(vals, env):
     """Evaluate a define form with parameters VALS in environment ENV."""
@@ -267,7 +269,13 @@ def do_if_form(vals, env):
 
 def do_and_form(vals, env):
     """Evaluate short-circuited and with parameters VALS in environment ENV."""
-    "*** YOUR CODE HERE ***"
+    if vals is nil:
+        return True
+    if not vals.first:
+        return False
+    if vals.second is nil:
+        return vals.first
+    return do_and_form(vals.second, env)
 
 def quote(value):
     """Return a Scheme expression quoting the Scheme VALUE.
@@ -282,7 +290,13 @@ def quote(value):
 
 def do_or_form(vals, env):
     """Evaluate short-circuited or with parameters VALS in environment ENV."""
-    "*** YOUR CODE HERE ***"
+    if vals is nil:
+        return False
+    if vals.first:
+        return quote(vals.first)
+    if vals.second is nil:
+        return vals.first
+    return do_or_form(vals.second, env)
 
 def do_cond_form(vals, env):
     """Evaluate cond form with parameters VALS in environment ENV."""
@@ -298,7 +312,11 @@ def do_cond_form(vals, env):
         else:
             test = scheme_eval(clause.first, env)
         if scheme_true(test):
-            "*** YOUR CODE HERE ***"
+            body = clause.second
+            if len(body) == 0:
+                return test
+            body = Pair('begin', body) if len(body) > 1 else body.first
+            return scheme_eval(body,env)
     return okay
 
 def do_begin_form(vals, env):
