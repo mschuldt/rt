@@ -60,7 +60,6 @@ def scheme_apply(procedure, args, env):
     elif isinstance(procedure, LambdaProcedure):
         frame = procedure.env.make_call_frame(procedure.formals, args)
         return scheme_eval(procedure.body, frame)
-        
     elif isinstance(procedure, MuProcedure):
         "*** YOUR CODE HERE ***"
     else:
@@ -137,7 +136,7 @@ class Frame:
         frame = Frame(self)
         if len(formals) != len(vals):
             raise SchemeError("wrong number of arguments")
-        list(map(lambda x: frame.define(*x), zip(formals,vals)))
+        list(map(lambda x: frame.define(*x), zip(formals, vals)))
         return frame
 
     def define(self, sym, val):
@@ -265,9 +264,16 @@ def do_if_form(vals, env):
     else_exp = vals[2] if len(vals) == 3 else okay
     return scheme_eval(vals[1] if scheme_true(scheme_eval(vals[0], env)) else else_exp, env)
 
+@trace
 def do_and_form(vals, env):
     """Evaluate short-circuited and with parameters VALS in environment ENV."""
-    "*** YOUR CODE HERE ***"
+    if vals is nil:
+        return True
+    if not vals.first:
+        return False
+    if vals.second is nil:
+        return vals.first
+    return do_and_form(vals.second, env)
 
 def quote(value):
     """Return a Scheme expression quoting the Scheme VALUE.
@@ -282,7 +288,13 @@ def quote(value):
 
 def do_or_form(vals, env):
     """Evaluate short-circuited or with parameters VALS in environment ENV."""
-    "*** YOUR CODE HERE ***"
+    if vals is nil:
+        return False
+    if vals.first:
+        return quote(vals.first)
+    if vals.second is nil:
+        return vals.first
+    return do_or_form(vals.second, env)
 
 def do_cond_form(vals, env):
     """Evaluate cond form with parameters VALS in environment ENV."""
