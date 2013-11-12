@@ -280,7 +280,7 @@ def do_and_form(vals, env):
     if vals is nil:
         return True
     while vals.second is not nil:
-        if not vals.first:
+        if scheme_eval(vals.first, env) is False:
             return False
         vals = vals.second
     return vals.first
@@ -301,8 +301,9 @@ def do_or_form(vals, env):
     if vals is nil:
         return False
     while vals.second is not nil:
-        if vals.first:
-            return quote(vals.first)
+        evaluated = scheme_eval(vals.first, env)
+        if evaluated is not False:
+            return quote(evaluated)
         vals = vals.second
     return vals.first
 
