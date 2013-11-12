@@ -30,7 +30,7 @@ def scheme_eval(expr, env):
 
     # All non-atomic expressions are lists.
     if not scheme_listp(expr):
-        raise SchemeError("(malform)ed list: {0}".format(str(expr)))
+        raise SchemeError("malformed list: {0}".format(str(expr)))
     first, rest = expr.first, expr.second
 
     # Evaluate Combinations
@@ -137,12 +137,9 @@ class Frame:
         frame = Frame(self)
         if len(formals) != len(vals):
             raise SchemeError("wrong number of arguments")
-<<<<<<< HEAD
+
         for formal, val in zip(formals, vals):
             frame.define(formal, val)
-=======
-        list(map(lambda x: frame.define(*x), zip(formals, vals)))
->>>>>>> a8f1aad17553fb9c11388a81f9c47bafacf6cbe3
         return frame
 
     def define(self, sym, val):
@@ -387,7 +384,7 @@ def scheme_optimized_eval(expr, env):
 
         # All non-atomic expressions are lists.
         if not scheme_listp(expr):
-            raise SchemeError("(malform)ed list: {0}".format(str(expr)))
+            raise SchemeError("malformed list: {0}".format(str(expr)))
         first, rest = expr.first, expr.second
 
         # Evaluate Combinations
