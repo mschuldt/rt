@@ -279,11 +279,11 @@ def do_and_form(vals, env):
     """Evaluate short-circuited and with parameters VALS in environment ENV."""
     if vals is nil:
         return True
-    if not vals.first:
-        return False
-    if vals.second is nil:
-        return vals.first
-    return do_and_form(vals.second, env)
+    while vals.second is not nil:
+        if not vals.first:
+            return False
+        vals = vals.second
+    return vals.first
 
 def quote(value):
     """Return a Scheme expression quoting the Scheme VALUE.
@@ -300,11 +300,11 @@ def do_or_form(vals, env):
     """Evaluate short-circuited or with parameters VALS in environment ENV."""
     if vals is nil:
         return False
-    if vals.first:
-        return quote(vals.first)
-    if vals.second is nil:
-        return vals.first
-    return do_or_form(vals.second, env)
+    while vals.second is not nil:
+        if vals.first:
+            return quote(vals.first)
+        vals = vals.second
+    return vals.first
 
 def do_cond_form(vals, env):
     """Evaluate cond form with parameters VALS in environment ENV."""
@@ -330,10 +330,10 @@ def do_cond_form(vals, env):
 def do_begin_form(vals, env):
     """Evaluate begin form with parameters VALS in environment ENV."""
     check_form(vals, 1)
-    if vals.second is nil:
-        return vals.first
-    scheme_eval(vals.first, env)
-    return do_begin_form(vals.second, env)
+    while vals.second is not nil:
+        scheme_eval(vals.first, env)
+        vals = vals.second
+    return vals.first
 
 LOGIC_FORMS = {
         "and": do_and_form,
@@ -364,7 +364,17 @@ def check_formals(formals):
 
     >>> check_formals(read_line("(a b c)"))
     """
-    "*** YOUR CODE HERE ***"
+    checked_formals = []
+    while formals is not nil:
+        formal = formals.first
+        if not isinstance(formals, Pair):
+            raise SchemeError("malformed formals list")
+        if not scheme_symbolp(formal):
+            raise SchemeError("invalid formal: {0}".format(str(formal)))
+        if formal in check_formals:
+            raise SchemeError("repeated formal: {0}".format(str(formal)))
+        checked_formals.append(formal)
+        formals = formals.second
 
 ##################
 # Tail Recursion #
