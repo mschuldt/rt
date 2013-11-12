@@ -30,7 +30,7 @@ def scheme_eval(expr, env):
 
     # All non-atomic expressions are lists.
     if not scheme_listp(expr):
-        raise SchemeError("malformed list: {0}".format(str(expr)))
+        raise SchemeError("(malform)ed list: {0}".format(str(expr)))
     first, rest = expr.first, expr.second
 
     # Evaluate Combinations
@@ -61,7 +61,8 @@ def scheme_apply(procedure, args, env):
         frame = procedure.env.make_call_frame(procedure.formals, args)
         return scheme_eval(procedure.body, frame)
     elif isinstance(procedure, MuProcedure):
-        "*** YOUR CODE HERE ***"
+        frame = env.make_call_frame(procedure.formals, args)
+        return scheme_eval(procedure.body, frame)
     else:
         raise SchemeError("Cannot call {0}".format(str(procedure)))
 
@@ -194,7 +195,7 @@ class MuProcedure:
 #################
 # Special forms #
 #################
-
+@trace
 def do_lambda_form(vals, env):
     """Evaluate a lambda form with parameters VALS in environment ENV."""
     check_form(vals, 2)
@@ -204,12 +205,15 @@ def do_lambda_form(vals, env):
     body = Pair('begin', body) if len(body) > 1 else body.first
     return LambdaProcedure(formals, body, env)
 
+@trace
 def do_mu_form(vals):
     """Evaluate a mu form with parameters VALS."""
     check_form(vals, 2)
     formals = vals[0]
     check_formals(formals)
-    "*** YOUR CODE HERE ***"
+    body = vals.second
+    body = Pair('begin', body) if len(body) > 1 else body.first
+    return MuProcedure(formals, body)
 
 def do_define_form(vals, env):
     """Evaluate a define form with parameters VALS in environment ENV."""
@@ -264,7 +268,6 @@ def do_if_form(vals, env):
     else_exp = vals[2] if len(vals) == 3 else okay
     return scheme_eval(vals[1] if scheme_true(scheme_eval(vals[0], env)) else else_exp, env)
 
-@trace
 def do_and_form(vals, env):
     """Evaluate short-circuited and with parameters VALS in environment ENV."""
     if vals is nil:
@@ -374,7 +377,7 @@ def scheme_optimized_eval(expr, env):
 
         # All non-atomic expressions are lists.
         if not scheme_listp(expr):
-            raise SchemeError("malformed list: {0}".format(str(expr)))
+            raise SchemeError("(malform)ed list: {0}".format(str(expr)))
         first, rest = expr.first, expr.second
 
         # Evaluate Combinations
