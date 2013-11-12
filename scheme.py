@@ -195,7 +195,6 @@ class MuProcedure:
 #################
 # Special forms #
 #################
-@trace
 def do_lambda_form(vals, env):
     """Evaluate a lambda form with parameters VALS in environment ENV."""
     check_form(vals, 2)
@@ -205,7 +204,6 @@ def do_lambda_form(vals, env):
     body = Pair('begin', body) if len(body) > 1 else body.first
     return LambdaProcedure(formals, body, env)
 
-@trace
 def do_mu_form(vals):
     """Evaluate a mu form with parameters VALS."""
     check_form(vals, 2)
