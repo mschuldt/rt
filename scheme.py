@@ -30,7 +30,7 @@ def scheme_eval(expr, env):
 
     # All non-atomic expressions are lists.
     if not scheme_listp(expr):
-        raise SchemeError("malformed list: {0}".format(str(expr)))
+        raise SchemeError("(malform)ed list: {0}".format(str(expr)))
     first, rest = expr.first, expr.second
 
     # Evaluate Combinations
@@ -58,11 +58,11 @@ def scheme_apply(procedure, args, env):
     if isinstance(procedure, PrimitiveProcedure):
         return apply_primitive(procedure, args, env)
     elif isinstance(procedure, LambdaProcedure):
-        frame = procedure.env.make_call_frame(procedure.formals, args)
-        return scheme_eval(procedure.body, frame)
+        new_env = procedure.env.make_call_frame(procedure.formals, args)
+        return scheme_eval(procedure.body, new_env)
     elif isinstance(procedure, MuProcedure):
-        frame = env.make_call_frame(procedure.formals, args)
-        return scheme_eval(procedure.body, frame)
+        new_env = env.make_call_frame(procedure.formals, args)
+        return scheme_eval(procedure.body, new_env)
     else:
         raise SchemeError("Cannot call {0}".format(str(procedure)))
 
@@ -137,8 +137,12 @@ class Frame:
         frame = Frame(self)
         if len(formals) != len(vals):
             raise SchemeError("wrong number of arguments")
+<<<<<<< HEAD
         for formal, val in zip(formals, vals):
             frame.define(formal, val)
+=======
+        list(map(lambda x: frame.define(*x), zip(formals, vals)))
+>>>>>>> a8f1aad17553fb9c11388a81f9c47bafacf6cbe3
         return frame
 
     def define(self, sym, val):
@@ -247,7 +251,14 @@ def do_let_form(vals, env):
 
     # Add a frame containing bindings
     names, values = nil, nil
-    "*** YOUR CODE HERE ***"
+    while bindings is not nil:
+        binding, bindings = bindings.first, bindings.second
+        if not scheme_symbolp(binding.first):
+            raise SchemeError("let: bad bindings syntax (not an identifier)")
+        names = Pair(binding.first, names)
+        if len(binding.second) > 1:
+            raise SchemeError("let: bad bindings syntax (expected one form)")
+        values = Pair(scheme_eval(binding.second.first, env), values)
     new_env = env.make_call_frame(names, values)
 
     # Evaluate all but the last expression after bindings, and return the last
@@ -376,7 +387,7 @@ def scheme_optimized_eval(expr, env):
 
         # All non-atomic expressions are lists.
         if not scheme_listp(expr):
-            raise SchemeError("malformed list: {0}".format(str(expr)))
+            raise SchemeError("(malform)ed list: {0}".format(str(expr)))
         first, rest = expr.first, expr.second
 
         # Evaluate Combinations
