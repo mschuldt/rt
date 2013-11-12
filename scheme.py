@@ -371,7 +371,7 @@ def check_formals(formals):
             raise SchemeError("malformed formals list")
         if not scheme_symbolp(formal):
             raise SchemeError("invalid formal: {0}".format(str(formal)))
-        if formal in check_formals:
+        if formal in checked_formals:
             raise SchemeError("repeated formal: {0}".format(str(formal)))
         checked_formals.append(formal)
         formals = formals.second
