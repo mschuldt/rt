@@ -23,8 +23,23 @@
 ;; Merge two lists LIST1 and LIST2 according to COMP and return
 ;; the merged lists.
 (define (merge comp list1 list2)
-    ; *** YOUR CODE HERE ***
-    nil)
+  (cond
+    ((null? list2) list1)
+    ((null? list1) list2)
+    (else
+      (if (comp (car list1) (car list2))
+        (cons
+          (car list1)
+          (merge comp (cdr list1) list2)
+        )
+        (cons
+          (car list2)
+          (merge comp (cdr list2) list1)
+        )
+      )
+    )
+  )
+)
 
 (merge < '(1 5 7 9) '(4 8 10))
 ; expect (1 4 5 7 8 9 10)

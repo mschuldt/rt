@@ -53,6 +53,7 @@ def scheme_eval(expr, env):
         args = rest.map(lambda operand: scheme_eval(operand, env))
         return scheme_apply(procedure, args, env)
 
+
 def scheme_apply(procedure, args, env):
     """Apply Scheme PROCEDURE to argument values ARGS in environment ENV."""
     if isinstance(procedure, PrimitiveProcedure):
@@ -273,10 +274,10 @@ def do_if_form(vals, env):
     """Evaluate if form with parameters VALS in environment ENV."""
     check_form(vals, 2, 3)
     else_exp = vals[2] if len(vals) == 3 else okay
-    return scheme_eval(vals[1] if scheme_true(scheme_eval(vals[0], env)) else else_exp, env)
+    return vals[1] if scheme_true(scheme_eval(vals[0], env)) else else_exp
 
 def do_and_form(vals, env):
-    """Evaluate short-circuited and with parameters VALS in environment ENV."""
+    """Evaluate short-cipythrcuited and with parameters VALS in environment ENV."""
     if vals is nil:
         return True
     while vals.second is not nil:
@@ -324,8 +325,7 @@ def do_cond_form(vals, env):
             body = clause.second
             if len(body) == 0:
                 return test
-            body = Pair('begin', body) if len(body) > 1 else body.first
-            return scheme_eval(body,env)
+            return Pair('begin', body) if len(body) > 1 else body.first
     return okay
 
 def do_begin_form(vals, env):

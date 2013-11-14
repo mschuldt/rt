@@ -9,7 +9,7 @@ buffer.py, ucb.py
 autograder.py
 """
 
-__version__ = '1.1'
+__version__ = '1.3'
 
 from autograder import test, run_tests, check_func, check_doctest, test_eval
 
@@ -43,7 +43,8 @@ def problem_1(grades):
         ("(a (b '(c d)))", pairify(['a', ['b', ['quote', ['c', 'd']]]])),
         ("')", 'Error')
     ]
-    if check_func(catch_syntax_error(read_line), tests1, comp=scheme_equal):
+    if check_func(catch_syntax_error(read_line), tests1, comp=scheme_equal,
+                  out_print=str):
         return True
 
 @test('2')
@@ -61,6 +62,7 @@ def problem_2(grades):
             pairify(['a', 'b', 'c', 'd'])),
         ('(. . 2)', 'Error'),
         ('(2 . 3 4 . 5)', 'Error'),
+        ('(2 (3 . 4) 5)', Pair(2, Pair(Pair(3, 4), Pair(5, nil)))),
     ]
     if check_func(catch_syntax_error(read_line), tests1, comp=scheme_equal):
         return True
@@ -70,6 +72,7 @@ def problem_2(grades):
 @test('3')
 def problem_3(grades):
     return check_doctest('apply_primitive', scheme)
+
 
 @test('4')
 def problem_4(grades):
@@ -93,6 +96,7 @@ def problem_4(grades):
     if check_func(scheme_eval, tests2, comp=scheme_equal):
         return True
 
+@test('5')
 @test('A5')
 def problem_A5(grades):
     tests1 = [
@@ -104,6 +108,7 @@ def problem_A5(grades):
     if check_func(scheme_eval, tests1, comp=scheme_equal):
         return True
 
+@test('6')
 @test('B6')
 def problem_B6(grades):
     tests1 = [
@@ -155,6 +160,7 @@ def problem_8(grades):
     if check_func(scheme_eval, tests2, comp=scheme_equal):
         return True
 
+@test('9')
 @test('A9')
 def problem_A9(grades):
     tests1 = [
@@ -218,6 +224,7 @@ def problem_10(grades):
     if check_func(lambda x: x, tests2, comp=scheme_equal):
         return True
 
+@test('11')
 @test('B11')
 def problem_B11(grades):
     # Note: Doesn't check well-formed but unrequired list matching.
@@ -279,6 +286,7 @@ def problem_12(grades):
     if check_func(scheme_eval, tests2, comp=scheme_equal):
         return True
 
+@test('13')
 @test('A13')
 def problem_A13(grades):
     tests1 = [
@@ -293,6 +301,7 @@ def problem_A13(grades):
     if check_func(scheme_eval, tests1, comp=scheme_equal):
         return True
 
+@test('14')
 @test('B14')
 def problem_B14(grades):
     tests1 = [
@@ -319,6 +328,7 @@ def problem_B14(grades):
     if check_func(scheme_eval, tests2, comp=scheme_equal):
         return True
 
+@test('15')
 @test('A15')
 def problem_A15(grades):
     tests1 = [
@@ -351,6 +361,7 @@ def problem_A15(grades):
     if check_func(scheme_eval, tests1, comp=scheme_equal):
         return True
 
+@test('16')
 @test('A16')
 def problem_A16(grades):
     tests1 = [
@@ -380,6 +391,7 @@ def problem_A16(grades):
     if check_func(scheme_eval, tests2, comp=scheme_equal):
         return True
 
+@test('17')
 @test('B17')
 def problem_B17(grades):
     tests1 = [
@@ -677,6 +689,8 @@ def make_check_scheme(file='questions.scm'):
     return check_scheme
 
 check_scheme = make_check_scheme()
+
+
 
 ##########################
 # COMMAND LINE INTERFACE #

@@ -37,6 +37,7 @@ def test_all(project_name, tests=TESTS):
     sys.exit(0)
 
 class TimeoutError(Exception):
+    _message = 'Evaluation timed out!'
     pass
 
 TIMEOUT = 20
@@ -68,7 +69,7 @@ def timed(func, timeout, args=(), kwargs={}):
     submission.start()
     submission.join(timeout)
     if submission.is_alive():
-        raise TimeoutError("Evaluation timed out!")
+        raise TimeoutError
     if submission.error is not None:
         raise submission.error
     return submission.result
