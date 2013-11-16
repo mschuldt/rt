@@ -123,9 +123,22 @@
 
 ;; Takes a TREE of numbers and outputs a list of sums from following each
 ;; possible path from root to leaf.
+
+(define (flatten lists)
+  (if (null? lists)
+    nil
+    (append (car lists) (flatten (cdr lists)))
+  )
+)
 (define (tree-sums tree)
-  ; *** YOUR CODE HERE ***
-  nil)
+  (if (null? (children tree))
+    (list (entry tree))
+    (map
+      (lambda (sum) (+ sum (entry tree)))
+      (flatten (map tree-sums (children tree)))
+    )
+  )
+)
 
 (tree-sums tree)
 ; expect (20 19 13 16 11)

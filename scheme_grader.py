@@ -9,7 +9,7 @@ buffer.py, ucb.py
 autograder.py
 """
 
-__version__ = '1.3'
+__version__ = '1.4'
 
 from autograder import test, run_tests, check_func, check_doctest, test_eval
 
@@ -43,8 +43,7 @@ def problem_1(grades):
         ("(a (b '(c d)))", pairify(['a', ['b', ['quote', ['c', 'd']]]])),
         ("')", 'Error')
     ]
-    if check_func(catch_syntax_error(read_line), tests1, comp=scheme_equal,
-                  out_print=str):
+    if check_func(catch_syntax_error(read_line), tests1, comp=scheme_equal):
         return True
 
 @test('2')

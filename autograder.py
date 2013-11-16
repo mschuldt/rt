@@ -102,7 +102,7 @@ def check_func(func, tests,
                 print(wrong_msg, desc[0])
             else:
                 print(wrong_msg, "input", in_print(input))
-                print("   returned", val, "not", out_print(output))
+                print("   returned", out_print(val), "not", out_print(output))
             code += 1
     return code
 
