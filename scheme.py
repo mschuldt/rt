@@ -381,7 +381,7 @@ def check_formals(formals):
 # Tail Recursion #
 ##################
 
-def scheme_optimized_eval(expr, env, tail_context = False):
+def scheme_optimized_eval(expr, env):
     """Evaluate Scheme expression EXPR in environment ENV."""
     while True:
         if expr is None:
@@ -401,7 +401,7 @@ def scheme_optimized_eval(expr, env, tail_context = False):
         # Evaluate Combinations
         if (scheme_symbolp(first) # first might be unhashable
             and first in LOGIC_FORMS):
-            return scheme_eval(LOGIC_FORMS[first](rest, env), env, tail_context)
+            expr = LOGIC_FORMS[first](rest, env)
         elif first == "lambda":
             return do_lambda_form(rest, env)
         elif first == "mu":
@@ -412,38 +412,26 @@ def scheme_optimized_eval(expr, env, tail_context = False):
             return do_quote_form(rest)
         elif first == "let":
             expr, env = do_let_form(rest, env)
-            return scheme_eval(expr, env, tail_context)
         else:
             procedure = scheme_eval(first, env)
             args = rest.map(lambda operand: scheme_eval(operand, env))
-            #OR to avoid creating a enw apply function:
-            #   Test for tail_context and recursion here
-            #   and just eval the proecure here without calling scheme_apply.
-            #   => but scheme_apply is still needed to initially set tail_context
-            return scheme_apply(procedure, args, env, tail_context)
 
-def scheme_optimized_apply(procedure, args, env, tail_context = False):
-    """Apply Scheme PROCEDURE to argument values ARGS in environment ENV."""
-    if isinstance(procedure, PrimitiveProcedure):
-        return apply_primitive(procedure, args, env)
-    elif isinstance(procedure, LambdaProcedure):
-        if tail_context and env is procedure.env: #correct recursive test?
-            for formal, val in zip(procedure.formals,args): #TODO: error checking
-                env.define(formal, val)
-        else:
-            env = procedure.env.make_call_frame(procedure.formals, args)
-        return scheme_eval(procedure.body, env, True)
-    elif isinstance(procedure, MuProcedure):
-        #TODO 
-        new_env = env.make_call_frame(procedure.formals, args)
-        return scheme_eval(procedure.body, new_env)
-    else:
-        raise SchemeError("Cannot call {0}".format(str(procedure)))
+            if isinstance(procedure, PrimitiveProcedure):
+                return apply_primitive(procedure, args, env)
+            elif isinstance(procedure, LambdaProcedure):
+                env = procedure.env.make_call_frame(procedure.formals, args)
+                expr = procedure.body
+            elif isinstance(procedure, MuProcedure):
+                env = env.make_call_frame(procedure.formals, args)
+                expr = procedure.body
+            else:
+                raise SchemeError("Cannot call {0}".format(str(procedure)))
+
         
 ################################################################
 # Uncomment the following line to apply tail call optimization #
 ################################################################
-# scheme_eval = scheme_optimized_eval
+scheme_eval = scheme_optimized_eval
 
 
 ################
