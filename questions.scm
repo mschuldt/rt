@@ -75,11 +75,25 @@
 
 ; Problem 19
 
+(define (reduce func list accum)
+  (if (null? list)
+      accum
+      (func (car list) (reduce func (cdr list) accum))
+      ))
+
 ;; A list of all ways to partition TOTAL, where  each partition must
 ;; be at most MAX-VALUE and there are at most MAX-PIECES partitions.
 (define (list-partitions total max-pieces max-value)
-  ; *** YOUR CODE HERE ***
-  nil)
+  (if (or (<= max-pieces 0)
+	  (<= max-value 0))
+      nil
+      (append 
+       (filter (lambda (x) (= (reduce + x 0) total))
+               (map (lambda (x) (cons max-value x))
+                    (let ((m (list-partitions (- total max-value) (- max-pieces 1) max-value)))
+                      (if (null? m) (list nil) m))))
+       (list-partitions total max-pieces (- max-value 1)))))
+
 
 ; Problem 19 tests rely on correct Problem 18.
 (sort-lists (list-partitions 5 2 4))
