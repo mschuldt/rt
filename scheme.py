@@ -86,7 +86,7 @@ def apply_primitive(procedure, args, env):
     try:
         return procedure.fn(*args)
     except TypeError as e:
-        raise SchemeError(str(e))
+        raise SchemeError(e)
 
 ################
 # Environments #
@@ -367,9 +367,9 @@ def check_formals(formals):
     """
     checked_formals = []
     while formals is not nil:
-        formal = formals.first
         if not isinstance(formals, Pair):
             raise SchemeError("malformed formals list")
+        formal = formals.first            
         if not scheme_symbolp(formal):
             raise SchemeError("invalid formal: {0}".format(str(formal)))
         if formal in checked_formals:
@@ -412,6 +412,13 @@ def scheme_optimized_eval(expr, env):
             return do_quote_form(rest)
         elif first == "let":
             expr, env = do_let_form(rest, env)
+        elif first == "try":
+            #TODO error checking
+            #or create do_try_form
+            try:
+                return scheme_eval(rest.first, env)
+            except:
+                return scheme_eval(rest.second.first, env)
         else:
             procedure = scheme_eval(first, env)
             args = rest.map(lambda operand: scheme_eval(operand, env))
