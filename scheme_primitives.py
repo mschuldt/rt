@@ -461,3 +461,20 @@ def tscheme_speed(s):
     turtle.speed(s)
     return okay
     
+@primitive("okay?")    
+def scheme_okay_p(expr):
+    """test if EXPR is 'okay'"""
+    return True if  expr is okay else False
+    
+@primitive("python-apply")
+def scheme_python_apply(func, args):
+    """Apply python FUNC to list of ARGS
+    Example:
+      (python-apply 'max '(3 4))
+      => 4"""
+    if not scheme_stringp(func):
+        SchemeError("invalid function type")
+    func = eval(func)
+    if callable(func):
+        return func(*args)
+    SchemeError("unknown identifier: " + str(func))
