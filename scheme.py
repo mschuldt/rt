@@ -1,4 +1,4 @@
-"""This module implements the core Scheme interpreter functions, including the
+"""This module implements the core Scheme interpreter functions, including bthe
 eval/apply mutual recurrence, environment model, and read-eval-print loop.
 """
 
@@ -104,7 +104,7 @@ class Frame:
         if self.parent is None:
             return "<Global Frame>"
         else:
-            s = sorted('{0}: {1}'.format(k,v) for k,v in self.bindings.items())
+            s = sorted('{0}: {1}'.format(k, v) for k, v in self.bindings.items())
             return "<{{{0}}} -> {1}>".format(', '.join(s), repr(self.parent))
 
     def lookup(self, symbol):
@@ -146,7 +146,7 @@ class Frame:
     def define(self, sym, val):
         """Define Scheme symbol SYM to have value VAL in SELF."""
         self.bindings[sym] = val
-        
+
     def set(self, sym, val):
         """Rebind SYM to have value VAL in the first frame it is found"""
         if sym in self.bindings:
@@ -154,7 +154,7 @@ class Frame:
         if self.parent:
             return self.parent.set(sym, val)
         raise SchemeError("unknown identifier: " + str(sym))
-            
+
 
 class LambdaProcedure:
     """A procedure defined by a lambda expression or the complex define form."""
@@ -242,7 +242,7 @@ def do_define_form(vals, env, macro = False):
             raise SchemeError("function name must a symbol. got {0}".format(type(name)))
         procedure = do_lambda_form(Pair(target.second, vals.second), env)
         if macro:
-            procedure.macro = True 
+            procedure.macro = True
         env.define(name, procedure)
         return target
     else:
@@ -275,7 +275,7 @@ def do_let_form(vals, env):
     new_env = env.make_call_frame(names, values)
 
     # Evaluate all but the last expression after bindings, and return the last
-    last = len(exprs)-1
+    last = len(exprs) - 1
     for i in range(0, last):
         scheme_eval(exprs[i], new_env)
     return exprs[last], new_env
@@ -329,7 +329,7 @@ def do_cond_form(vals, env):
     for i, clause in enumerate(vals):
         check_form(clause, 1)
         if clause.first == "else":
-            if i < num_clauses-1:
+            if i < num_clauses - 1:
                 raise SchemeError("else must be last")
             test = True
             if clause.second is nil:
@@ -384,7 +384,7 @@ def check_formals(formals):
     while formals is not nil:
         if not isinstance(formals, Pair):
             raise SchemeError("malformed formals list")
-        formal = formals.first            
+        formal = formals.first
         if not scheme_symbolp(formal):
             raise SchemeError("invalid formal: {0}".format(str(formal)))
         if formal in checked_formals:
@@ -402,16 +402,15 @@ def do_try_form(rest, env):
             return scheme_eval(rest.second.first, env)
         return okay
 
-def do_set_form(expr, env):
-    """set!"""
-    check_form(expr, 2)
-    name = expr.first
+def do_set_form(vals, env):
+    """evaluate a 'set!' form with parameters VALS in ENV"""
+    check_form(vals, 2)
+    name = vals.first
     if not scheme_symbolp(name):
         SchemeError("set!: Target must be a symbol")
-    value = scheme_eval(expr.second.first, env)
+    value = scheme_eval(vals.second.first, env)
     env.set(name, value)
     return okay
-    
 
 ##################
 # Tail Recursion #
@@ -459,7 +458,7 @@ def scheme_optimized_eval(expr, env):
             if isinstance(procedure, LambdaProcedure) and procedure.macro:
                 macro_p = True
                 args = rest
-            else:                
+            else:
                 args = rest.map(lambda operand: scheme_eval(operand, env))
                 macro_p = False
 
@@ -472,14 +471,14 @@ def scheme_optimized_eval(expr, env):
                 expr = procedure.body
                 if macro_p:
                     expr = scheme_eval(expr, env)
-                    env = old_env 
+                    env = old_env
             elif isinstance(procedure, MuProcedure):
                 env = env.make_call_frame(procedure.formals, args)
                 expr = procedure.body
             else:
                 raise SchemeError("Cannot call {0}".format(str(procedure)))
 
-        
+
 ################################################################
 # Uncomment the following line to apply tail call optimization #
 ################################################################
