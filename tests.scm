@@ -211,6 +211,78 @@
   (if nil "yes" "no")
   "yes")
 
+                                        ;problem B14
+(assert-equal (and) 'True)
+(assert-equal (or) 'False)
+(assert-equal (and 4 5 6) 6 )   ; all operands are true values
+(assert-equal (or 5 2 1) 5)    ; 5 is a true value
+(assert-equal (and #t #f 42 (/ 1 0)) False)    ; short-circuiting behavior of and
+(assert-equal (or 4 #t (/ 1 0)) 4)    ; short-circuiting behavior of or
+
+;;problem A15
+
+(assert-equal (cond ((= 4 3) 'nope)
+                    ((= 4 4) 'hi)
+                    (else 'wait))
+              'hi)
+(assert-equal (cond ((= 4 3) 'wat)
+                    ((= 4 4))
+                    (else 'hm))
+              'True)
+(assert-equal (cond ((= 4 4) 'here 42)
+                    (else 'wat 0))
+              42)
+(assert-equal (cond ((= 4 4) 'here 42))
+	      (cond ((= 4 4) (begin 'here 42))))
+;;problem A16
+
+(assert-equal (define x 'hi)
+	      'x)
+(assert-equal (define y 'bye)
+	      'y)
+(assert-equal (let ((x 42)
+                    (y (* 5 10)))
+		(list x y))
+	      '(42 50))
+(assert-equal (list x y)
+              '(hi bye))
+
+;;problem B17
+(assert-equal (define f (mu (x) (+ x y)))
+	      'f)
+(assert-equal (define g (lambda (x y) (f (+ x x))))
+	      'g)
+(assert-equal (g 3 7)
+	      13)
+
+(load 'questions)
+
+;;problem 18
+(assert-equal (merge < '(1 4 6) '(2 5 8))
+	      '(1 2 4 5 6 8))
+
+(assert-equal(merge > '(6 4 1) '(8 5 2))
+             '(8 6 5 4 2 1))
+(assert-equal (merge < '(1 5 7 9) '(4 8 10))
+	      '(1 4 5 7 8 9 10))
+(assert-equal (merge > '(9 7 5 1) '(10 8 4 3))
+	      '(10 9 8 7 5 4 3 1))
+
+(assert-equal (merge greater-list '((3 2 1) (1 1) (0)) '((4 0) (3 2 0) (3 2) (1)))
+	      '((4 0) (3 2 1) (3 2 0) (3 2) (1 1) (1) (0)))
+
+
+;;problem 19
+                                        ; Problem 19 tests rely on correct Problem 18.
+(assert-equal (sort-lists (list-partitions 5 2 4))
+	      '((4 1) (3 2)))
+(assert-equal (sort-lists (list-partitions 7 3 5))
+	      '((5 2) (5 1 1) (4 3) (4 2 1) (3 3 1) (3 2 2)))
+
+;;problem 20
+(assert-equal (tree-sums tree)
+	      '(20 19 13 16 11))
+
 
 
 ;;; These are examples from several sections of "The Structure
