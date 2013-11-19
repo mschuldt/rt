@@ -5,44 +5,135 @@
 ;;; (exit)
 ;;;
 ;;; after the last test you wish to run.
-;;; *** Add more of your own here! ***
+;;; *** Add more of your own here! *** 
 
-(define (assert-equal v1 v2)
+(define (cadr x)
+  (car (cdr x)))
+(define (caddr x)
+  (car (cdr (cdr x))))
+(define (cadddr x)
+  (car (cdr (cdr (cdr x)))))
+
+
+(define-macro (dolist var--list code)
+  (list 'let '()
+        (list 'define (list '_call_ (car var--list))
+              code)
+        '(define (_do_ lst)
+           (if (not (null? lst)) 
+               (begin
+                 (_call_ (car lst))
+                 (_do_ (cdr lst)))))
+        (list '_do_ (cadr var--list))))
+
+(define-macro (for var in lst : code)
+  "This is why lisp is amazing!"  
+  (list 'let '()
+        (list 'define (list '_call_ var)
+              code)
+        '(define (_do_ lst)
+           (if (not (null? lst)) 
+               (begin
+                 (_call_ (car lst))
+                 (_do_ (cdr lst)))))
+        
+        (list '_do_ lst)))
+
+
+(define tests-passed 0) ;;number of tests passed
+(define tests-failed nil) ;;list of failed tests
+(define (assert-equal2 v1 v2 quoted)
   (if (equal? v1 v2)
-      (print 'ok)
-      (print (list v2 'does 'not 'equal v1))))
+      (begin
+        (set! tests-passed (+ tests-passed 1))
+        (print 'ok))
+      (begin
+        (set! tests-failed (cons (list quoted v1 v2)
+                                 tests-failed))
+        (print (list v2 'does 'not 'equal v1)))
+      ))
 
+(define-macro (assert-equal form expect)
+  (if (equal? expect 'okay)
+      (begin (set! form (list 'okay? form))
+             (set! expect 'True)))
+  (list 'assert-equal2 form expect (list 'quote form)))
+
+(define-macro (assert-equal form expect)
+  (if (equal? expect 'okay)
+      (list 'assert-equal2
+            (list 'okay? form)
+            'True
+            (list 'quote form))
+      (list 'assert-equal2 form expect (list 'quote form))))
+
+   
+(define (test-report)
+  (let ((passed tests-passed)
+        (failed (length tests-failed))
+        (total nil))
+    (set! total (+ passed failed))
+    (print (list passed '/ total 'tests 'passed))
+    (print (list failed 'tests 'failed. 'Run '(fail-report) 'for 'details))))
+
+(define (fail-report)
+  (let ((count 0))
+    (for test in tests-failed :
+         (begin
+           (newline)
+           (print (list  '----- 'failed 'test count '----))
+           (print (list  'test: (car test)))
+           (print (list  'expected: (caddr test)))
+           (print (list  'got: (cadr test)))
+           (set! count (+ count 1))))))
+
+
+(define-macro (push newelt place)
+  "Add NEWELT to the existing list PLACE"
+  (list 'set! place (list 'cons newelt place)))
+
+(define (reverse lst)
+  "reverse a list"
+  (define newlist nil)
+  (for i in lst :
+       (push  i newlist))
+  newlist)
+
+
+;;tests for 'dolist' and 'for'
+(define x '(1 2 3 4))
+
+(dolist (y x) (print y))
+
+(define x '())
+(define test-list '(1 2 3 4))
+(dolist (elem test-list) (set! x (cons elem x)))
+
+(assert-equal x '(4 3 2 1))
+(set! x nil)
+
+(for i in '(1 2 3 4 5) :
+     (push (* i i) x))
+
+(assert-equal x '(25 16 9 4 1))
+
+
+;;tests for 'push'
+(define lst '(1))
+(push 5 lst)
+(assert-equal lst '(5 1))
+(push (+ 1 3) lst)
+(assert-equal lst '(4 5 1))
+
+;;test for 'reverse'
+(define x '(1 2 3 4))
+(set! x (reverse x))
+(assert-equal x '(4 3 2 1))
+
+
+
+    
 (assert-equal #t True)
-
-
-;;test our version of `try'
-(assert-equal (try 3 4)
-              3)
-(assert-equal(try (/ 1 0) 9)
-             9)
-(assert-equal (try (/ 1 0))
-              'okay)
-
-(assert-equal (okay? (cond ((= 1 3) 1)))
-              True)
-(assert-equal (okay? 'okay)
-              False)
-(assert-equal (python-apply 'max '(3 4))
-              4)
-
-(define x 2)
-(set! x 4)
-(assert-equal x 4)
-(define (test) (set! x 9))
-(test)
-(assert-equal x 9)
-(assert-equal (try (set! undefined-varaible 4)
-                   "err")
-              "err")
-
-(define-macro (when test code) (list 'if test (list 'begin code) nil))
-(assert-equal (when (= 1 1) (+ 2 3))
-              5)
 
 
 ;;question 2
@@ -53,7 +144,7 @@
 	      '(1 2 quote (1 3)))
 
 (assert-equal '(1 2 . (list 1 3))
-	      '(1 2 1 3))
+	      '(1 2 list 1 3))
 
 ;;question 3
 (assert-equal (try (modulo 1)
@@ -194,7 +285,7 @@
 (assert-equal
   (if True "yes" "no") "yes")
 (assert-equal
-  (if false "yes") 'okay)
+  (if false "yes") okay)
 (assert-equal ;;check for correct operands 
  (try
   (if false)
@@ -211,7 +302,7 @@
   (if nil "yes" "no")
   "yes")
 
-                                        ;problem B14
+;problem B14
 (assert-equal (and) 'True)
 (assert-equal (or) 'False)
 (assert-equal (and 4 5 6) 6 )   ; all operands are true values
@@ -222,16 +313,16 @@
 ;;problem A15
 
 (assert-equal (cond ((= 4 3) 'nope)
-                    ((= 4 4) 'hi)
-                    (else 'wait))
-              'hi)
+              ((= 4 4) 'hi)
+              (else 'wait))
+    'hi)
 (assert-equal (cond ((= 4 3) 'wat)
-                    ((= 4 4))
-                    (else 'hm))
-              'True)
+              ((= 4 4))
+              (else 'hm))
+    'True)
 (assert-equal (cond ((= 4 4) 'here 42)
-                    (else 'wat 0))
-              42)
+              (else 'wat 0))
+    42)
 (assert-equal (cond ((= 4 4) 'here 42))
 	      (cond ((= 4 4) (begin 'here 42))))
 ;;problem A16
@@ -241,11 +332,11 @@
 (assert-equal (define y 'bye)
 	      'y)
 (assert-equal (let ((x 42)
-                    (y (* 5 10)))
+              (y (* 5 10)))
 		(list x y))
 	      '(42 50))
 (assert-equal (list x y)
-              '(hi bye))
+    '(hi bye))
 
 ;;problem B17
 (assert-equal (define f (mu (x) (+ x y)))
@@ -262,7 +353,7 @@
 	      '(1 2 4 5 6 8))
 
 (assert-equal(merge > '(6 4 1) '(8 5 2))
-             '(8 6 5 4 2 1))
+    '(8 6 5 4 2 1))
 (assert-equal (merge < '(1 5 7 9) '(4 8 10))
 	      '(1 4 5 7 8 9 10))
 (assert-equal (merge > '(9 7 5 1) '(10 8 4 3))
@@ -273,7 +364,7 @@
 
 
 ;;problem 19
-                                        ; Problem 19 tests rely on correct Problem 18.
+; Problem 19 tests rely on correct Problem 18.
 (assert-equal (sort-lists (list-partitions 5 2 4))
 	      '((4 1) (3 2)))
 (assert-equal (sort-lists (list-partitions 7 3 5))
@@ -282,9 +373,7 @@
 ;;problem 20
 (assert-equal (tree-sums tree)
 	      '(20 19 13 16 11))
-
-
-
+  
 ;;; These are examples from several sections of "The Structure
 ;;; and Interpretation of Computer Programs" by Abelson and Sussman.
 
@@ -548,17 +637,17 @@
   (newline))
 (define one-half (make-rat 1 2))
 (assert-equal (print-rat one-half)
- 'okay)
+ okay)
 ;mbs
 (define one-third (make-rat 1 3))
 (assert-equal (print-rat (add-rat one-half one-third))
-'okay)
+okay)
 
 (assert-equal (print-rat (mul-rat one-half one-third))
- 'okay)
+okay)
 
 (assert-equal (print-rat (add-rat one-third one-third))
- 'okay)
+okay)
 
 (define (gcd a b)
   (if (= b 0)
@@ -568,7 +657,7 @@
   (let ((g (gcd n d)))
     (cons (/ n g) (/ d g))))
 (assert-equal (print-rat (add-rat one-third one-third))
-'okay)
+okay)
 
 (define one-through-four (list 1 2 3 4))
 (assert-equal one-through-four
@@ -867,3 +956,4 @@
 
 
       
+(test-report)
