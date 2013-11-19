@@ -244,7 +244,7 @@ def do_define_form(vals, env, macro = False):
         if macro:
             procedure.macro = True
         env.define(name, procedure)
-        return target
+        return target.first
     else:
         raise SchemeError("bad argument to define")
 
