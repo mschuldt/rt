@@ -56,7 +56,9 @@
         (set! tests-failed (cons (list quoted v1 v2)
                                  tests-failed))
         (print (list v2 'does 'not 'equal v1)))))
-
+  
+;;NOTE: now that we have `okay?' we can get rid of this macro entirely
+;;      but why not just leave it as an additional test
 (define-macro (assert-equal form expect)
   "modifies assert test so that it can detect 'okay', then calls `assert-equal2'"
   (if (equal? expect 'okay)
@@ -152,6 +154,20 @@
               'procedure)
 (assert-equal (type-of (mu (x) (+ 2 3))
                        'procedure))
+
+;;tests to_string
+(assert-equal (to-string "hi")
+              "hi")
+(assert-equal (to-string "'hi'")
+               "'hi'")
+(assert-equal (to-string 'hi)
+              "hi")
+(assert-equal (to-string 3)
+              "3")
+(assert-equal (to-string 3.9)
+              "3.9")
+(assert-equal (to-string (lambda (x) (* 33 2)))
+              "(lambda (x) (* 33 2))")
 
 (assert-equal #t True)
 

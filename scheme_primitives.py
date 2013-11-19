@@ -502,6 +502,11 @@ def scheme_type_of(expr):
         return 'procedure'
     return type(expr)
 
+@primitive("to-string")
+def scheme_to_string(expr):
+    "cast EXPR to string"
+    return  expr if scheme_stringp(expr) else '"{0}"'.format(expr)
+
 @primitive("python-apply")
 def scheme_python_apply(func, args):
     """Apply python FUNC to list of ARGS
