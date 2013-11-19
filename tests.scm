@@ -23,6 +23,11 @@
 (assert-equal (try (/ 1 0))
               'okay)
 
+(assert-equal (okay? (cond ((= 1 3) 1)))
+              True)
+(assert-equal (okay? 'okay)
+              False)
+
 ;;question 2
 '(1 2 . 3 3)
 ;;reader error (illegal use of `.')
