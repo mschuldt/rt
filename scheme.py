@@ -150,7 +150,7 @@ class Frame:
     def set(self, sym, val):
         """Rebind SYM to have value VAL in the first frame it is found"""
         if sym in self.bindings:
-            self.define(sym,val)
+            return self.define(sym, val)
         if self.parent:
             return self.parent.set(sym, val)
         raise SchemeError("unknown identifier: " + str(sym))
@@ -408,11 +408,10 @@ def do_set_form(expr, env):
     name = expr.first
     if not scheme_symbolp(name):
         SchemeError("set!: Target must be a symbol")
-    value = scheme_eval(expr.second.first,env)
+    value = scheme_eval(expr.second.first, env)
     env.set(name, value)
     return okay
     
-
 
 ##################
 # Tail Recursion #
@@ -455,7 +454,6 @@ def scheme_optimized_eval(expr, env):
             return do_try_form(rest, env)
         elif first == "set!":
             return do_set_form(rest, env)
-
         else:
             procedure = scheme_eval(first, env)
             if isinstance(procedure, LambdaProcedure) and procedure.macro:
