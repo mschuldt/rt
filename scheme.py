@@ -168,6 +168,7 @@ class LambdaProcedure:
         self.formals = formals
         self.body = body
         self.env = env
+        self.macro = False
 
     def __str__(self):
         return "(lambda {0} {1})".format(str(self.formals), str(self.body))
@@ -225,11 +226,13 @@ def do_mu_form(vals):
     body = Pair('begin', body) if len(body) > 1 else body.first
     return MuProcedure(formals, body)
 
-def do_define_form(vals, env):
+def do_define_form(vals, env, macro = False):
     """Evaluate a define form with parameters VALS in environment ENV."""
     check_form(vals, 2)
     target = vals[0]
     if scheme_symbolp(target):
+        if macro:
+            SchemeError("cannot define a symbol as a macro")
         check_form(vals, 2, 2)
         env.define(target, scheme_eval(vals[1], env))
         return target
@@ -237,7 +240,10 @@ def do_define_form(vals, env):
         name = target.first
         if not scheme_symbolp(name):
             raise SchemeError("function name must a symbol. got {0}".format(type(name)))
-        env.define(name, do_lambda_form(Pair(target.second, vals.second), env))
+        procedure = do_lambda_form(Pair(target.second, vals.second), env)
+        if macro:
+            procedure.macro = True 
+        env.define(name, procedure)
         return target
     else:
         raise SchemeError("bad argument to define")
@@ -439,6 +445,8 @@ def scheme_optimized_eval(expr, env):
             return do_mu_form(rest)
         elif first == "define":
             return do_define_form(rest, env)
+        elif first == "define-macro":
+            return do_define_form(rest, env, True)
         elif first == "quote":
             return do_quote_form(rest)
         elif first == "let":
@@ -447,15 +455,23 @@ def scheme_optimized_eval(expr, env):
             return do_try_form(rest, env)
         elif first == "set!":
             return do_set_form(rest, env)
+
         else:
             procedure = scheme_eval(first, env)
-            args = rest.map(lambda operand: scheme_eval(operand, env))
+            if isinstance(procedure, LambdaProcedure) and procedure.macro:
+                macro_p = True
+                args = rest
+            else:
+                macro_p = False
+                args = rest.map(lambda operand: scheme_eval(operand, env))
 
             if isinstance(procedure, PrimitiveProcedure):
                 return apply_primitive(procedure, args, env)
             elif isinstance(procedure, LambdaProcedure):
                 env = procedure.env.make_call_frame(procedure.formals, args)
                 expr = procedure.body
+                if macro_p:
+                    expr = scheme_eval(expr, env)
             elif isinstance(procedure, MuProcedure):
                 env = env.make_call_frame(procedure.formals, args)
                 expr = procedure.body

@@ -40,6 +40,11 @@
                    "err")
               "err")
 
+(define-macro (when test code) (list 'if test (list 'begin code) nil))
+(assert-equal (when (= 1 1) (+ 2 3))
+              5)
+
+
 ;;question 2
 '(1 2 . 3 3)
 ;;reader error (illegal use of `.')
