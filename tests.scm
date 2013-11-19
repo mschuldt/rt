@@ -36,6 +36,9 @@
 (define (test) (set! x 9))
 (test)
 (assert-equal x 9)
+(assert-equal (try (set! undefined-varaible 4)
+                   "err")
+              "err")
 
 ;;question 2
 '(1 2 . 3 3)

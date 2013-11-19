@@ -153,7 +153,7 @@ class Frame:
             self.define(sym,val)
         if self.parent:
             return self.parent.set(sym, val)
-        SchemeError("unknown identifier: " + str(sym))
+        raise SchemeError("unknown identifier: " + str(sym))
             
 
 class LambdaProcedure:
