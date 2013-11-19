@@ -27,6 +27,8 @@
               True)
 (assert-equal (okay? 'okay)
               False)
+(assert-equal (python-apply 'max '(3 4))
+              4)
 
 ;;question 2
 '(1 2 . 3 3)
