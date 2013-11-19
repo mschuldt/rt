@@ -478,3 +478,4 @@ def scheme_python_apply(func, args):
     if callable(func):
         return func(*args)
     SchemeError("unknown identifier: " + str(func))
+
