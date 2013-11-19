@@ -377,6 +377,16 @@ def check_formals(formals):
         checked_formals.append(formal)
         formals = formals.second
 
+def do_try_form(rest, env):
+    "Attempt to eval the first form in REST, eval the second if it fails"
+    check_form(rest, 1)
+    try:
+        return scheme_eval(rest.first, env)
+    except:
+        if rest.second:
+            return scheme_eval(rest.second.first, env)
+        return okay
+
 ##################
 # Tail Recursion #
 ##################
@@ -413,12 +423,7 @@ def scheme_optimized_eval(expr, env):
         elif first == "let":
             expr, env = do_let_form(rest, env)
         elif first == "try":
-            #TODO error checking
-            #or create do_try_form
-            try:
-                return scheme_eval(rest.first, env)
-            except:
-                return scheme_eval(rest.second.first, env)
+            return do_try_form(rest, env)
         else:
             procedure = scheme_eval(first, env)
             args = rest.map(lambda operand: scheme_eval(operand, env))

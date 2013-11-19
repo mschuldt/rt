@@ -15,6 +15,14 @@
 (assert-equal #t True)
 
 
+;;test our version of `try'
+(assert-equal (try 3 4)
+              3)
+(assert-equal(try (/ 1 0) 9)
+             9)
+(assert-equal (try (/ 1 0))
+              'okay)
+
 ;;question 2
 '(1 2 . 3 3)
 ;;reader error (illegal use of `.')
@@ -182,7 +190,7 @@
   "yes")
 
 
-	
+
 ;;; These are examples from several sections of "The Structure
 ;;; and Interpretation of Computer Programs" by Abelson and Sussman.
 
