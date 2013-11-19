@@ -459,17 +459,20 @@ def scheme_optimized_eval(expr, env):
             if isinstance(procedure, LambdaProcedure) and procedure.macro:
                 macro_p = True
                 args = rest
-            else:
-                macro_p = False
+            else:                
                 args = rest.map(lambda operand: scheme_eval(operand, env))
+                macro_p = False
 
             if isinstance(procedure, PrimitiveProcedure):
                 return apply_primitive(procedure, args, env)
             elif isinstance(procedure, LambdaProcedure):
+                if macro_p:
+                    old_env = env # macro expansion is not a tail call!
                 env = procedure.env.make_call_frame(procedure.formals, args)
                 expr = procedure.body
                 if macro_p:
                     expr = scheme_eval(expr, env)
+                    env = old_env 
             elif isinstance(procedure, MuProcedure):
                 env = env.make_call_frame(procedure.formals, args)
                 expr = procedure.body
