@@ -74,7 +74,8 @@
         (total nil))
     (set! total (+ passed failed))
     (print (list passed '/ total 'tests 'passed))
-    (print (list failed 'tests 'failed. 'Run '(fail-report) 'for 'details))))
+    (if failed
+        (print (list failed 'tests 'failed. 'Run '(fail-report) 'for 'details)))))
 
 (define (fail-report)
   (let ((count 0))
