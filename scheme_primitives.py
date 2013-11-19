@@ -464,8 +464,44 @@ def tscheme_speed(s):
 @primitive("okay?")    
 def scheme_okay_p(expr):
     """test if EXPR is 'okay'"""
-    return True if  expr is okay else False
+    return True if expr is okay else False
+
     
+from scheme import LambdaProcedure
+from scheme import MuProcedure
+@primitive("lambda?")
+def scheme_lambda_p(expr):
+    return isinstance(expr, LambdaProcedure)
+    
+@primitive("mu?")    
+def scheme_mu_p(expr):
+    return isinstance(expr, MuProcedure)
+    
+@primitive("procedure?")
+def scheme_procedure_p(expr):
+    return scheme_lambda_p(expr) or scheme_mu_p(expr)
+
+@primitive("type-of")
+def scheme_type_of(expr):
+    """return the type of EXPR"""
+    if scheme_booleanp(expr):
+        return 'boolean'    
+    elif scheme_stringp(expr):
+        return 'string'
+    elif scheme_symbolp(expr):
+        return 'symbol'
+    elif scheme_numberp(expr):
+        return 'number'
+    elif scheme_listp(expr):
+        return 'list'
+    elif scheme_pairp(expr):
+        return 'pair'
+    elif scheme_okay_p(expr):
+        return 'okay'
+    if scheme_procedure_p(expr):
+        return 'procedure'
+    return type(expr)
+
 @primitive("python-apply")
 def scheme_python_apply(func, args):
     """Apply python FUNC to list of ARGS

@@ -15,9 +15,9 @@
   (car (cdr (cdr (cdr x)))))
 
 (define-macro (dolist var--list code)
-  "Loop over a list.
-(dolist (VAR LIST) CODE)
-Evaluate CODE with VAR bound to each `car' from LIST, in turn"
+  "Loop over a list"
+"(dolist (VAR LIST) CODE)"
+"Evaluate CODE with VAR bound to each `car' from LIST, in turn"
   (list 'let '()
         (list 'define (list '_call_ (car var--list))
               code)
@@ -45,6 +45,7 @@ Evaluate CODE with VAR bound to each `car' from LIST, in turn"
 
 (define tests-passed 0) ;;number of tests passed
 (define tests-failed nil) ;;list of failed tests
+
 (define (assert-equal2 v1 v2 quoted)
   "prints and saves the results of testings V1 and V2 for equality"
   (if (equal? v1 v2)
@@ -85,7 +86,7 @@ Evaluate CODE with VAR bound to each `car' from LIST, in turn"
     (for test in tests-failed :
          (begin
            (newline)
-           (print (list  '----- 'failed 'test count '----))
+           (print (list  'failed 'test count '--------------------------------))
            (print (list  'test: (car test)))
            (print (list  'expected: (caddr test)))
            (print (list  'got: (cadr test)))
@@ -129,6 +130,28 @@ Evaluate CODE with VAR bound to each `car' from LIST, in turn"
 (set! x (reverse x))
 (assert-equal x '(4 3 2 1))
 
+
+;;tests for 'type-of'
+(assert-equal (type-of "hi")
+              'string)
+(assert-equal (type-of 'hi)
+              'symbol)
+(assert-equal (type-of 2)
+              'number)
+(assert-equal (type-of 2.3)
+              'number)
+(assert-equal (type-of '(2 3))
+              'list)
+(assert-equal (type-of (cons 2 3))
+              'pair)
+(assert-equal (type-of #f)
+              'boolean)
+(assert-equal (type-of (cond ((= 2 4) 4))
+              'okay)
+(assert-equal (type-of (lambda (x) (+ 2 3)))
+              'procedure)
+(assert-equal (type-of (mu (x) (+ 2 3))
+                       'procedure))
 
 (assert-equal #t True)
 
@@ -197,7 +220,7 @@ Evaluate CODE with VAR bound to each `car' from LIST, in turn"
  '(lambda (x) (begin 1 2)))
 
 (assert-equal
- (lambda (x) 1 )
+ (lambda (x) 1)
  '(lambda (x) 1))
 
 (assert-equal ((lambda (a b) (+ a b)) 3 4) 7)
@@ -264,7 +287,7 @@ Evaluate CODE with VAR bound to each `car' from LIST, in turn"
       "err")
  "err")
 (assert-equal (define (x x) (+ x 1))
-	      '(x x))
+	      'x)
 
 (assert-equal
  (try (define (+ x 1))
@@ -441,7 +464,7 @@ Evaluate CODE with VAR bound to each `car' from LIST, in turn"
 ;;; 1.1.4
 
 (assert-equal (define (square x) (* x x))
- '(square x))
+ 'square)
 (assert-equal (square 21)
  441)
 
