@@ -30,6 +30,13 @@
 (assert-equal (python-apply 'max '(3 4))
               4)
 
+(define x 2)
+(set! x 4)
+(assert-equal x 4)
+(define (test) (set! x 9))
+(test)
+(assert-equal x 9)
+
 ;;question 2
 '(1 2 . 3 3)
 ;;reader error (illegal use of `.')

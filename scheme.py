@@ -146,6 +146,15 @@ class Frame:
     def define(self, sym, val):
         """Define Scheme symbol SYM to have value VAL in SELF."""
         self.bindings[sym] = val
+        
+    def set(self, sym, val):
+        """Rebind SYM to have value VAL in the first frame it is found"""
+        if sym in self.bindings:
+            self.define(sym,val)
+        if self.parent:
+            return self.parent.set(sym, val)
+        SchemeError("unknown identifier: " + str(sym))
+            
 
 class LambdaProcedure:
     """A procedure defined by a lambda expression or the complex define form."""
@@ -387,6 +396,18 @@ def do_try_form(rest, env):
             return scheme_eval(rest.second.first, env)
         return okay
 
+def do_set_form(expr, env):
+    """set!"""
+    check_form(expr, 2)
+    name = expr.first
+    if not scheme_symbolp(name):
+        SchemeError("set!: Target must be a symbol")
+    value = scheme_eval(expr.second.first,env)
+    env.set(name, value)
+    return okay
+    
+
+
 ##################
 # Tail Recursion #
 ##################
@@ -424,6 +445,8 @@ def scheme_optimized_eval(expr, env):
             expr, env = do_let_form(rest, env)
         elif first == "try":
             return do_try_form(rest, env)
+        elif first == "set!":
+            return do_set_form(rest, env)
         else:
             procedure = scheme_eval(first, env)
             args = rest.map(lambda operand: scheme_eval(operand, env))
