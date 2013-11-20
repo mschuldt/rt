@@ -466,9 +466,9 @@ def scheme_okay_p(expr):
     """test if EXPR is 'okay'"""
     return True if expr is okay else False
 
-    
 from scheme import LambdaProcedure
 from scheme import MuProcedure
+
 @primitive("lambda?")
 def scheme_lambda_p(expr):
     return isinstance(expr, LambdaProcedure)
@@ -502,6 +502,7 @@ def scheme_type_of(expr):
         return 'procedure'
     return type(expr)
 
+    
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"
