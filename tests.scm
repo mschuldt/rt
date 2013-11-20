@@ -80,7 +80,7 @@
         (total nil))
     (set! total (+ passed failed))
     (print (list passed '/ total 'tests 'passed))
-    (if failed
+    (if (> (length tests-failed) 0)
         (print (list failed 'tests 'failed. 'Run '(fail-report) 'for 'details)))))
 
 (define (fail-report)
@@ -152,7 +152,9 @@
               'okay)
 (assert-equal (type-of (lambda (x) (+ 2 3)))
               'procedure)
-(assert-equal (type-of (mu (x) (+ 2 3))
+;;TODO: the test for 'procedure' works when this file is
+;;loaded but fails when it is manually ran
+(assert-equal (type-of (mu (x) (+ 2 3)) 
                        'procedure))
 
 ;;tests to_string
@@ -168,6 +170,8 @@
               "3.9")
 (assert-equal (to-string (lambda (x) (* 33 2)))
               "(lambda (x) (* 33 2))")
+(assert-equal (to-string (lambda (x) (begin 1 2)))
+               (to-string (lambda (x) (begin 1 2))))
 
 (assert-equal #t True)
 
@@ -232,12 +236,12 @@
 (define add  (lambda (a b) (+ a b))) ;;test lambda
 (assert-equal (add 1 2)  3)
 (assert-equal
- (lambda (x) 1 2)
- '(lambda (x) (begin 1 2)))
+ (to-string (lambda (x) 1 2))
+ "(lambda (x) (begin 1 2))")
 
 (assert-equal
- (lambda (x) 1)
- '(lambda (x) 1))
+ (to-string (lambda (x) 1))
+ "(lambda (x) 1)")
 
 (assert-equal ((lambda (a b) (+ a b)) 3 4) 7)
 
