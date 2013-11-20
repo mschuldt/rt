@@ -221,6 +221,28 @@ def scheme_ceil(val):
     _check_nums(val)
     return math.ceil(val)
 
+@primitive("sqrt")
+def scheme_sqrt(val):
+    _check_nums(val)
+    if val < 0:
+        raise SchemeError("Can't take SQRT of a negative")
+    return math.sqrt(val)
+
+@primitive("abs")
+def scheme_abs(val):
+    _check_nums(val)
+    return abs(val)
+
+@primitive("max")
+def scheme_max(a, b):
+    _check_nums(a, b)
+    return max(a, b)
+
+@primitive("pow")
+def scheme_pow(a, b):
+    _check_nums(a, b)
+    return pow(a, b)
+
 def _numcomp(op, x, y):
     _check_nums(x, y)
     return op(x, y)
@@ -321,6 +343,7 @@ def _tscheme_prep():
         turtle.mode('logo')
         turtle.screensize(600,600)
         turtle.speed(0)
+        turtle.tracer(500)
 
 @primitive("forward", "fd")
 def tscheme_forward(n):
