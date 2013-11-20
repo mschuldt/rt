@@ -30,16 +30,10 @@
       (if (comp (car list1) (car list2))
         (cons
           (car list1)
-          (merge comp (cdr list1) list2)
-        )
+          (merge comp (cdr list1) list2))
         (cons
           (car list2)
-          (merge comp (cdr list2) list1)
-        )
-      )
-    )
-  )
-)
+          (merge comp (cdr list2) list1))))))
 
 (merge < '(1 5 7 9) '(4 8 10))
 ; expect (1 4 5 7 8 9 10)
@@ -75,12 +69,6 @@
 
 ; Problem 19
 
-(define (reduce func list accum)
-  (if (null? list)
-      accum
-      (func (car list) (reduce func (cdr list) accum))
-      ))
-
 ;; A list of all ways to partition TOTAL, where  each partition must
 ;; be at most MAX-VALUE and there are at most MAX-PIECES partitions.
 (define (list-partitions total max-pieces max-value)
@@ -88,19 +76,19 @@
 	  (<= max-value 0))
       nil
       (append 
-       (filter (lambda (x) (= (reduce + x 0) total))
+       (filter (lambda (x) (= (accumulate + 0 x) total))
                (map (lambda (x) (cons max-value x))
-                    (let ((m (list-partitions (- total max-value) (- max-pieces 1) max-value)))
+                    (let ((m (list-partitions (- total max-value)
+                                              (- max-pieces 1)
+                                              max-value)))
                       (if (null? m) (list nil) m))))
        (list-partitions total max-pieces (- max-value 1)))))
-
 
 ; Problem 19 tests rely on correct Problem 18.
 (sort-lists (list-partitions 5 2 4))
 ; expect ((4 1) (3 2))
 (sort-lists (list-partitions 7 3 5))
 ; expect ((5 2) (5 1 1) (4 3) (4 2 1) (3 3 1) (3 2 2))
-
 
 ; Problem 20
 
@@ -141,22 +129,17 @@
 (define (flatten lists)
   (if (null? lists)
     nil
-    (append (car lists) (flatten (cdr lists)))
-  )
-)
+    (append (car lists) (flatten (cdr lists)))))
+
 (define (tree-sums tree)
   (if (null? (children tree))
     (list (entry tree))
     (map
       (lambda (sum) (+ sum (entry tree)))
-      (flatten (map tree-sums (children tree)))
-    )
-  )
-)
+      (flatten (map tree-sums (children tree))))))
 
 (tree-sums tree)
 ; expect (20 19 13 16 11)
-
 
 ; Problem 21 (optional)
 
