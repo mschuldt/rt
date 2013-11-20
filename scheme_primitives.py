@@ -317,7 +317,10 @@ def _tscheme_prep():
     if not _turtle_screen_on:
         _turtle_screen_on = True
         turtle.title("Scheme Turtles")
+        turtle.colormode(255)
         turtle.mode('logo')
+        turtle.screensize(600,600)
+        turtle.speed(0)
 
 @primitive("forward", "fd")
 def tscheme_forward(n):
@@ -460,8 +463,17 @@ def tscheme_speed(s):
     _tscheme_prep()
     turtle.speed(s)
     return okay
-    
-@primitive("okay?")    
+
+
+@primitive("dot")
+def tscheme_dot(size, r=0, g=0, b=0):
+    _tscheme_prep()
+    _check_nums(r, g, b)
+    turtle.dot(size, (r, g, b))
+    return okay
+
+
+@primitive("okay?")
 def scheme_okay_p(expr):
     """test if EXPR is 'okay'"""
     return True if expr is okay else False
