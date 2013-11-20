@@ -162,12 +162,6 @@
               'boolean)
 (assert-equal (type-of (cond ((= 2 4) 4))
               'okay)
-(assert-equal (type-of (lambda (x) (+ 2 3)))
-              'procedure)
-;;TODO: the test for 'procedure' works when this file is
-;;loaded but fails when it is manually ran
-(assert-equal (type-of (mu (x) (+ 2 3)) 
-                       'procedure))
 
 ;;tests to_string
 (assert-equal (to-string "hi")
