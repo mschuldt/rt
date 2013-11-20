@@ -5,7 +5,7 @@
 ;;; (exit)
 ;;;
 ;;; after the last test you wish to run.
-;;; *** Add more of your own here! *** 
+;;; *** Add more of your own here! ***
 
 (define (cadr x)
   (car (cdr x)))
@@ -14,35 +14,40 @@
 (define (cadddr x)
   (car (cdr (cdr (cdr x)))))
 
-
 (define-macro (dolist var--list code)
+  "Loop over a list"
+"(dolist (VAR LIST) CODE)"
+"Evaluate CODE with VAR bound to each `car' from LIST, in turn"
   (list 'let '()
         (list 'define (list '_call_ (car var--list))
               code)
         '(define (_do_ lst)
-           (if (not (null? lst)) 
+           (if (not (null? lst))
                (begin
                  (_call_ (car lst))
                  (_do_ (cdr lst)))))
         (list '_do_ (cadr var--list))))
 
 (define-macro (for var in lst : code)
-  "This is why lisp is amazing!"  
+  "This is why lisp is amazing!"
   (list 'let '()
         (list 'define (list '_call_ var)
               code)
         '(define (_do_ lst)
-           (if (not (null? lst)) 
+           (if (not (null? lst))
                (begin
                  (_call_ (car lst))
                  (_do_ (cdr lst)))))
-        
+
         (list '_do_ lst)))
 
+;;functions to help with testing
 
 (define tests-passed 0) ;;number of tests passed
 (define tests-failed nil) ;;list of failed tests
+
 (define (assert-equal2 v1 v2 quoted)
+  "prints and saves the results of testings V1 and V2 for equality"
   (if (equal? v1 v2)
       (begin
         (set! tests-passed (+ tests-passed 1))
@@ -50,10 +55,12 @@
       (begin
         (set! tests-failed (cons (list quoted v1 v2)
                                  tests-failed))
-        (print (list v2 'does 'not 'equal v1)))
-      ))
-
+        (print (list v2 'does 'not 'equal v1)))))
+  
+;;NOTE: now that we have `okay?' we can get rid of this macro entirely
+;;      but why not just leave it as an additional test
 (define-macro (assert-equal form expect)
+  "modifies assert test so that it can detect 'okay', then calls `assert-equal2'"
   (if (equal? expect 'okay)
       (begin (set! form (list 'okay? form))
              (set! expect 'True)))
@@ -67,14 +74,13 @@
             (list 'quote form))
       (list 'assert-equal2 form expect (list 'quote form))))
 
-   
 (define (test-report)
   (let ((passed tests-passed)
         (failed (length tests-failed))
         (total nil))
     (set! total (+ passed failed))
     (print (list passed '/ total 'tests 'passed))
-    (if failed
+    (if (> (length tests-failed) 0)
         (print (list failed 'tests 'failed. 'Run '(fail-report) 'for 'details)))))
 
 (define (fail-report)
@@ -82,12 +88,11 @@
     (for test in tests-failed :
          (begin
            (newline)
-           (print (list  '----- 'failed 'test count '----))
+           (print (list  'failed 'test count '--------------------------------))
            (print (list  'test: (car test)))
            (print (list  'expected: (caddr test)))
            (print (list  'got: (cadr test)))
            (set! count (+ count 1))))))
-
 
 (define-macro (push newelt place)
   "Add NEWELT to the existing list PLACE"
@@ -100,17 +105,13 @@
        (push  i newlist))
   newlist)
 
-
 ;;tests for 'dolist' and 'for'
-(define x '(1 2 3 4))
-
-(dolist (y x) (print y))
-
 (define x '())
 (define test-list '(1 2 3 4))
 (dolist (elem test-list) (set! x (cons elem x)))
 
 (assert-equal x '(4 3 2 1))
+
 (set! x nil)
 
 (for i in '(1 2 3 4 5) :
@@ -132,10 +133,47 @@
 (assert-equal x '(4 3 2 1))
 
 
+;;tests for 'type-of'
+(assert-equal (type-of "hi")
+              'string)
+(assert-equal (type-of 'hi)
+              'symbol)
+(assert-equal (type-of 2)
+              'number)
+(assert-equal (type-of 2.3)
+              'number)
+(assert-equal (type-of '(2 3))
+              'list)
+(assert-equal (type-of (cons 2 3))
+              'pair)
+(assert-equal (type-of #f)
+              'boolean)
+(assert-equal (type-of (cond ((= 2 4) 4))
+              'okay)
+(assert-equal (type-of (lambda (x) (+ 2 3)))
+              'procedure)
+;;TODO: the test for 'procedure' works when this file is
+;;loaded but fails when it is manually ran
+(assert-equal (type-of (mu (x) (+ 2 3)) 
+                       'procedure))
 
-    
+;;tests to_string
+(assert-equal (to-string "hi")
+              "hi")
+(assert-equal (to-string "'hi'")
+               "'hi'")
+(assert-equal (to-string 'hi)
+              "hi")
+(assert-equal (to-string 3)
+              "3")
+(assert-equal (to-string 3.9)
+              "3.9")
+(assert-equal (to-string (lambda (x) (* 33 2)))
+              "(lambda (x) (* 33 2))")
+(assert-equal (to-string (lambda (x) (begin 1 2)))
+               (to-string (lambda (x) (begin 1 2))))
+
 (assert-equal #t True)
-
 
 ;;question 2
 '(1 2 . 3 3)
@@ -198,12 +236,12 @@
 (define add  (lambda (a b) (+ a b))) ;;test lambda
 (assert-equal (add 1 2)  3)
 (assert-equal
- (lambda (x) 1 2)
- '(lambda (x) (begin 1 2)))
+ (to-string (lambda (x) 1 2))
+ "(lambda (x) (begin 1 2))")
 
 (assert-equal
- (lambda (x) 1 )
- '(lambda (x) 1))
+ (to-string (lambda (x) 1))
+ "(lambda (x) 1)")
 
 (assert-equal ((lambda (a b) (+ a b)) 3 4) 7)
 
@@ -229,19 +267,19 @@
 (define (f x) (* x 2))  ;;test equivalence to lambda def
 (define g (lambda (x) (* x 2)))
 
-(assert-equal 
+(assert-equal
  (define (f x) (* x 2))
  (define f (lambda (x) (* x 2))))
 (assert-equal (f 3) (g 3))
 (assert-equal (f 3) 6)
 
 (assert-equal  ;;test formals list
- (try (define (7 x) 
+ (try (define (7 x)
 	 (* x 8))
       "err")
  "err")
 
-(assert-equal 
+(assert-equal
  (try (define (x)) ;;check for min operands
       "err")
  "err")
@@ -254,7 +292,7 @@
       "err")
  "err")
 
-(assert-equal 
+(assert-equal
  (try (test)
       "err")
  "err")
@@ -269,37 +307,36 @@
       "err")
  "err")
 (assert-equal (define (x x) (+ x 1))
-	      '(x x))
+	      'x)
 
 (assert-equal
  (try (define (+ x 1))
       "err")
  "err")
 
-
 ;;problem 12 tested above
 
 ;;problem 13
-      
+
 (assert-equal
   (if False "yes" "no") "no")
 (assert-equal
   (if True "yes" "no") "yes")
 (assert-equal
   (if false "yes") okay)
-(assert-equal ;;check for correct operands 
+(assert-equal ;;check for correct operands
  (try
   (if false)
   "err")
  "err")
 
-(assert-equal 
+(assert-equal
  (try
   (if false 1 2 2 33 4)
   "err")
  "err")
 
-(assert-equal 
+(assert-equal
   (if nil "yes" "no")
   "yes")
 
@@ -374,15 +411,13 @@
 ;;problem 20
 (assert-equal (tree-sums tree)
 	      '(20 19 13 16 11))
-  
+
 ;;; These are examples from several sections of "The Structure
 ;;; and Interpretation of Computer Programs" by Abelson and Sussman.
 
 ;;; License: Creative Commons share alike with attribution
 
 ;;; 1.1.1
-
-
 
 (assert-equal 10 10)
 
@@ -449,7 +484,7 @@
 ;;; 1.1.4
 
 (assert-equal (define (square x) (* x x))
- '(square x))
+ 'square)
 (assert-equal (square 21)
  441)
 
@@ -956,5 +991,5 @@ okay)
  501501)
 
 
-      
+
 (test-report)
