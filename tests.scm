@@ -98,12 +98,24 @@
   "Add NEWELT to the existing list PLACE"
   (list 'set! place (list 'cons newelt place)))
 
+  
 (define (reverse lst)
   "reverse a list"
   (define newlist nil)
   (for i in lst :
        (push  i newlist))
   newlist)
+
+(define (range num)
+  "range from 0 to NUM"
+  (define (make-range num)
+    (if (= num -1)
+        nil
+        (cons num (make-range (- num 1)))))
+  (reverse (make-range (- num 1))))
+
+(assert-equal (range 5)
+              '(0 1 2 3 4))
 
 ;;tests for 'dolist' and 'for'
 (define x '())
