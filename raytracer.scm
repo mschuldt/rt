@@ -31,41 +31,7 @@
 (define (lights-by-index index)
 	(get-by-index lights 0 index lights-length))
 
-(define (max a b)
-	(if (>= a b) a b))
-
 (define (square x) (* x x))
-
-(define (pow b n)
-  (if (= n 0)
-    1
-    (if (odd? n)
-      (* b (pow b (- n 1)))
-      (square (pow b (/ n 2))))))
-
-(define (abs x)
-  (cond ((> x 0) x)
-        ((= x 0) 0)
-        ((< x 0) (- x))))
-
-(define (sqrt-iter guess x)
-  (if (good-enough? guess x)
-      guess
-      (sqrt-iter (improve guess x)
-                 x)))
-(define (improve guess x)
-  (average guess (/ x guess)))
-(define (average x y)
-  (/ (+ x y) 2))
-(define (good-enough? guess x)
-  (< (abs (- (square guess) x)) 0.001))
-
-(define (sqrt x)
-  (define (sqrt-iter guess)
-    (if (good-enough? guess)
-        guess
-        (sqrt-iter (improve guess))))
-  (sqrt-iter 1.0))
 
 (define (dot-product a b)
 	(+
@@ -95,12 +61,12 @@
 					(define discr (sqrt discr))
 					(define sol1 (/ (- b discr) a))
 					(if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))(begin
-						(define v q)
-						(set! min-dist sol1))) ; thanks to mu
+						(set! v q)
+						(set! min-dist sol1)))
 					(define sol2 (/ (- b (- discr)) a))
 					(if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))(begin
-						(define v q)
-						(set! min-dist sol2))) ; thanks to mu
+						(set! v q)
+						(set! min-dist sol2)))
 					))
 				(closest-sphere-index v (+ q 6)))))
 	(closest-sphere-index 0 0)))
@@ -163,13 +129,13 @@
 	(if (< x-left x-right)
 		(begin
 			(define camera (list 0 1 0))
-			(define direction (list (/ x-left canv-width) (/ y-top canv-width) 1))
 			(define color-channel 1)
-			(define r (trace-ray camera direction 1 canv-width 2)) ;; thank you mu!
+			(define direct (list (/ x-left canv-width) (/ y-top canv-width) 1))
+			(define r (trace-ray camera direct 1 canv-width 2))
 			(define color-channel 2)
-			(define g (trace-ray camera direction 1 canv-width 2)) ;; thank you mu!
+			(define g (trace-ray camera direct 1 canv-width 2))
 			(define color-channel 3)
-			(define b (trace-ray camera direction 1 canv-width 2)) ;; thank you mu!
+			(define b (trace-ray camera direct 1 canv-width 2))
 			(set-dot x-left y-top (if (> r 255) 255 r) (if (> g 255) 255 g) (if (> b 255) 255 b))
 			(draw-x (+ x-left 1) x-right)))))
 
