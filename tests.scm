@@ -98,12 +98,24 @@
   "Add NEWELT to the existing list PLACE"
   (list 'set! place (list 'cons newelt place)))
 
+  
 (define (reverse lst)
   "reverse a list"
   (define newlist nil)
   (for i in lst :
        (push  i newlist))
   newlist)
+
+(define (range num)
+  "range from 0 to NUM"
+  (define (make-range num)
+    (if (= num -1)
+        nil
+        (cons num (make-range (- num 1)))))
+  (reverse (make-range (- num 1))))
+
+(assert-equal (range 5)
+              '(0 1 2 3 4))
 
 ;;tests for 'dolist' and 'for'
 (define x '())
@@ -150,12 +162,6 @@
               'boolean)
 (assert-equal (type-of (cond ((= 2 4) 4))
               'okay)
-(assert-equal (type-of (lambda (x) (+ 2 3)))
-              'procedure)
-;;TODO: the test for 'procedure' works when this file is
-;;loaded but fails when it is manually ran
-(assert-equal (type-of (mu (x) (+ 2 3)) 
-                       'procedure))
 
 ;;tests to_string
 (assert-equal (to-string "hi")

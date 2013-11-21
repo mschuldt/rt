@@ -233,10 +233,17 @@ def scheme_abs(val):
     _check_nums(val)
     return abs(val)
 
-@primitive("max")
+@primitive("max") 
 def scheme_max(a, b):
+    """Takes max of two values."""
     _check_nums(a, b)
     return max(a, b)
+
+@primitive("min")
+def scheme_max(a, b):
+    """Takes min of two values."""
+    _check_nums(a, b)
+    return min(a, b)
 
 @primitive("pow")
 def scheme_pow(a, b):
@@ -341,6 +348,7 @@ def _tscheme_prep():
         turtle.title("Scheme Turtles")
         turtle.colormode(255)
         turtle.mode('logo')
+        turtle.shape("turtle")
         turtle.screensize(600,600)
         turtle.speed(0)
         turtle.tracer(500)
@@ -501,21 +509,6 @@ def scheme_okay_p(expr):
     """test if EXPR is 'okay'"""
     return True if expr is okay else False
 
-    
-from scheme import LambdaProcedure
-from scheme import MuProcedure
-@primitive("lambda?")
-def scheme_lambda_p(expr):
-    return isinstance(expr, LambdaProcedure)
-    
-@primitive("mu?")    
-def scheme_mu_p(expr):
-    return isinstance(expr, MuProcedure)
-    
-@primitive("procedure?")
-def scheme_procedure_p(expr):
-    return scheme_lambda_p(expr) or scheme_mu_p(expr)
-
 @primitive("type-of")
 def scheme_type_of(expr):
     """return the type of EXPR"""
@@ -533,10 +526,8 @@ def scheme_type_of(expr):
         return 'pair'
     elif scheme_okay_p(expr):
         return 'okay'
-    if scheme_procedure_p(expr):
-        return 'procedure'
     return type(expr)
-
+    
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"
