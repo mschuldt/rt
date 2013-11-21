@@ -1,4 +1,5 @@
 (define canv-size 200)
+(speed 0)
 (define dot-size 5)
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
