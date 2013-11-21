@@ -1,13 +1,13 @@
-(define canv-width 500)
+(define canv-width 100)
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
-	canv-width (list 0 (- canv-width) 0)  9 9 0  canv-width  2  ;; Yellow sphere
-	1 (list 0  0 3)  9 0 0  canv-width  3  ;; Red sphere
-	1 (list (- 2)  1 4)  0 9 0  9  4  ;; Green sphere
-	1 (list 2  1 4)  0 0 9  canv-width  5   ;; Blue sphere
+	(list canv-width (list 0 (- canv-width) 0)  (list 9 9 0)  canv-width  2)  ;; Yellow sphere
+	(list 1 (list 0  0 3)  (list 9 0 0)  canv-width  3)  ;; Red sphere
+	(list 1 (list (- 2)  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
+	(list 1 (list 2  1 4)  (list 0 0 9)  canv-width  5)   ;; Blue sphere
 	))
 (define spheres-length (length spheres)) ;some optimization
-
+(define camera (list 0 1 0))
 (define ambient-light 2)
 (define lights (list 8 (list 2 2 0))) ;; always even size
 (define lights-length (length lights)) ;some optimization
@@ -27,6 +27,9 @@
 
 (define (spheres-by-index index)
 	(get-by-index spheres 0 index spheres-length))
+
+(define (param-by-index sphere index)
+	(get-by-index sphere 0 index 7))
 
 (define (lights-by-index index)
 	(get-by-index lights 0 index lights-length))
@@ -51,33 +54,36 @@
 		(cond
 			((null? (spheres-by-index q)) v)
 			(else
-				(define radius (spheres-by-index q))
-				(define q (+ q 1))
-				(define j (a-minus-bk source (spheres-by-index q) 1))
+				(define sphere (spheres-by-index q))
+				(define radius (car sphere))
+				(define j (a-minus-bk source (cadr sphere) 1))
 				(define a (* 2 (dot-product direction direction)))
 				(define b (- (* 2 (dot-product j direction))))
 				(define discr (- (square b) (* 2 a (- (dot-product j j) (square radius)))))
 				(if (> discr 0) (begin
 					(define discr (sqrt discr))
 					(define sol1 (/ (- b discr) a))
-					(if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))(begin
-						(set! v q)
-						(set! min-dist sol1)))
+					(if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
+						(begin
+							(define v q)
+							(set! min-dist sol1)))
 					(define sol2 (/ (- b (- discr)) a))
-					(if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))(begin
-						(set! v q)
-						(set! min-dist sol2)))
+					(if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
+						(begin
+							(define v q)
+							(set! min-dist sol2)))
 					))
-				(closest-sphere-index v (+ q 6)))))
-	(closest-sphere-index 0 0)))
+				(closest-sphere-index v (+ q 1)))))
+	(closest-sphere-index (- 1) 0)))
 
 
 (define trace-ray (mu (source direction t_min t_max depth) ; MU Procedure I LOVE YOU <3
 	(define min-dist canv-width)
-	(define closest-sphere (closest-intersection source direction t_min t_max))
-	(if (= 0 closest-sphere) 0 (begin
+	(define closest-sphere (closest-intersection source direction t_min t_max)) ;; get index
+	(if (= (- 1) closest-sphere) 0 (begin
+		(define closest-sphere (spheres-by-index closest-sphere)) ;; get actual sphere list
 		(define intersection (a-minus-bk source direction (- min-dist)))
-		(define normal (a-minus-bk intersection (spheres-by-index closest-sphere) 1))
+		(define normal (a-minus-bk intersection (cadr closest-sphere) 1))
 		(define n (dot-product normal normal))
 		(define (get-illumination index illumination)
 			(cond
@@ -90,7 +96,7 @@
 					(define m (a-minus-bk light-vector normal (/ (* 2 k) n)))
 					(define illumination (+ illumination
 						(*
-							(if (= 0 (closest-intersection intersection light-vector (/ 1 canv-width) 1)) 1 0)
+							(if (= -1 (closest-intersection intersection light-vector (/ 1 canv-width) 1)) 1 0)
 							intensity
 							(+
 								(max 0 (/ k (sqrt (* (dot-product light-vector light-vector) n))))
@@ -98,13 +104,14 @@
 									(/
 										(dot-product m direction)
 										(sqrt (* (dot-product m m) (dot-product direction direction))))
-									(spheres-by-index (+ closest-sphere 4))))))))
+									(param-by-index closest-sphere 3))))))) ;; get specular_exponent 4th element
 					(get-illumination (+ index 1) illumination)))))
+		(define color (caddr closest-sphere))
 		(define local-color (*
-			(spheres-by-index (+ closest-sphere color-channel))
+			(color-channel color)
 			(get-illumination 0 ambient-light)
-			2.8))
-		(define reflection (/ (spheres-by-index (+ closest-sphere 5)) 9))
+			2.833))
+		(define reflection (/ (param-by-index closest-sphere 4) 9)) ;; get reflectance
 		(if (> depth 0)
 			(+
 				(*
@@ -128,22 +135,14 @@
 (define draw-x (mu (x-left x-right)
 	(if (< x-left x-right)
 		(begin
-			(define camera (list 0 1 0))
-			(define color-channel 1)
+			(define color-channel car)
 			(define direct (list (/ x-left canv-width) (/ y-top canv-width) 1))
 			(define r (trace-ray camera direct 1 canv-width 2))
-			(define color-channel 2)
+			(define color-channel cadr)
 			(define g (trace-ray camera direct 1 canv-width 2))
-			(define color-channel 3)
+			(define color-channel caddr)
 			(define b (trace-ray camera direct 1 canv-width 2))
 			(set-dot x-left y-top (if (> r 255) 255 r) (if (> g 255) 255 g) (if (> b 255) 255 b))
 			(draw-x (+ x-left 1) x-right)))))
 
-(draw-y half (- half))
-
-
-
-
-
-
-
+(define (draw) (draw-y half (- half)) (exitonclick))
