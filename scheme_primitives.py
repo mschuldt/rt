@@ -349,8 +349,7 @@ def _tscheme_prep():
         turtle.colormode(255)
         turtle.mode('logo')
         turtle.shape("turtle")
-        turtle.screensize(600,600)
-        turtle.speed(0)
+        turtle.screensize(600, 600)
         turtle.tracer(500)
 
 @primitive("forward", "fd")
@@ -513,7 +512,7 @@ def scheme_okay_p(expr):
 def scheme_type_of(expr):
     """return the type of EXPR"""
     if scheme_booleanp(expr):
-        return 'boolean'    
+        return 'boolean'
     elif scheme_stringp(expr):
         return 'string'
     elif scheme_symbolp(expr):
@@ -527,7 +526,7 @@ def scheme_type_of(expr):
     elif scheme_okay_p(expr):
         return 'okay'
     return type(expr)
-    
+
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"

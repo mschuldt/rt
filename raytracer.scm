@@ -1,5 +1,5 @@
-(define canv-size 200)
-(define dot-size 5)
+(define canv-size 300)
+(define dot-size 1)
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
 	(list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
@@ -22,7 +22,7 @@
 (define (caddr x)
   (car (cdr (cdr x))))
 
-(define (to-255 value) (min 255 value))
+(define (to-255 value) (- 255 (min 255 value)))
 
 (define (map proc items)
   (if (null? items)
@@ -42,18 +42,23 @@
 	(get-by-index spheres 0 index spheres-length))
 
 (define (param-by-index sphere index)
-	(get-by-index sphere 0 index 7))
+	(get-by-index sphere 0 index 5))
 
 (define (lights-by-index index)
 	(get-by-index lights 0 index lights-length))
 
 (define (square x) (* x x))
 
+; (define (dot-product a b)
+; 	(+
+; 		(* (car a) (car b))
+; 		(* (cadr a) (cadr b))
+; 		(* (caddr a) (caddr b))))
+
 (define (dot-product a b)
-	(+
-		(* (car a) (car b))
-		(* (cadr a) (cadr b))
-		(* (caddr a) (caddr b))))
+	(define (dot-product-iter a b sum)
+		(if (null? a) sum (dot-product-iter (cdr a) (cdr b) (+ (* (car a) (car b)) sum))))
+	(dot-product-iter a b 0))
 
 (define (a-minus-bk a b k)
 	(list
@@ -62,39 +67,47 @@
 		(- (caddr a) (* (caddr b) k))))
 
 
-(define closest-intersection (mu (source direction t_min t_max)
+; (define (a-minus-bk a b k)
+; 	(sum-lists a (map (lambda (b-elem) (- (* b-elem k))) b)))
+
+; (define (a-minus-bk a b k)
+; 	(if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
+
+
+(define closest-intersection (mu (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
 	(define (get-closest-sphere v q)
+		(define curr-sphere (spheres-by-index q))
 		(cond
-			((null? (spheres-by-index q)) v)
+			((null? curr-sphere) v)
 			(else
-				(define curr-sphere (spheres-by-index q))
 				(define radius (car curr-sphere))
 				(define j (a-minus-bk source (cadr curr-sphere) 1))
 				(define a (* 2 (dot-product direction direction)))
 				(define b (- (* 2 (dot-product j direction))))
 				(define discr (- (square b) (* 2 a (- (dot-product j j) (square radius)))))
-				(if (> discr 0) (begin
-					(define discr (sqrt discr))
-					(define sol1 (/ (- b discr) a))
-					(if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
-						(begin
-							(define v curr-sphere)
-							(set! min-dist sol1)))
-					(define sol2 (/ (- b (- discr)) a))
-					(if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
-						(begin
-							(define v curr-sphere)
-							(set! min-dist sol2)))
-					))
+				(if (> discr 0)
+					(begin
+						(define discr (sqrt discr))
+						(define sol1 (/ (- b discr) a))
+						(if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
+							(begin
+								(define v curr-sphere)
+								(set! min-dist sol1))) ;set is because mu
+						(define sol2 (/ (- b (- discr)) a))
+						(if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
+							(begin
+								(define v curr-sphere)
+								(set! min-dist sol2))) ;set is because mu
+						))
 				(get-closest-sphere v (+ q 1)))))
 	(get-closest-sphere 0 0)))
 
 
-(define (trace-ray source direction t_min t_max depth) ; MU Procedure I LOVE YOU <3
+(define (trace-ray source direction t_min t_max depth) ;; would be great to make it tail-recursive
 	(define min-dist canv-size)
 	(define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere
 	(if (number? closest-sphere) ; if no intersection
-		(list 0 0 0)
+		(list 0 0 0) ; black
 		(begin
 			(define intersection (a-minus-bk source direction (- min-dist)))
 			(define normal (a-minus-bk intersection (cadr closest-sphere) 1))
@@ -125,6 +138,7 @@
 			(define reflection (/ (param-by-index closest-sphere 4) 9)) ;; get reflectance
 			(if (> depth 0)
 				(begin
+					(define local-color (map (lambda (channel) (* channel (- 1 reflection))) local-color))
 					(define new-ray (map (lambda (channel) (* channel reflection))
 						(trace-ray
 							intersection
@@ -132,7 +146,6 @@
 							(/ 1 canv-size)
 							canv-size
 							(- depth 1))))
-					(define local-color (map (lambda (channel) (* channel (- 1 reflection))) local-color))
 					(sum-lists new-ray local-color))
 				local-color))))
 
@@ -154,7 +167,7 @@
 					(list (/ x-left canv-size)(/ y-top canv-size) 1)
 					1
 					canv-size
-					2))
+					2)) ; reflection depth
 			(draw-x (+ x-left dot-size) x-right)))))
 
-(define (draw) (penup) (draw-y half (- half)) (exitonclick))
+(define (draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
