@@ -1,5 +1,5 @@
 (define canv-size 300)
-(define dot-size 1)
+(define dot-size 5)
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
 	(list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
@@ -7,22 +7,21 @@
 	(list 1 (list (- 2)  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
 	(list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
 	))
-(define spheres-length (length spheres)) ;some optimization
+(define lights (list (list 8 (list 2 2 0)))) ;; always even size
 (define camera (list 0 1 0))
 (define ambient-light 2)
-(define lights (list (list 8 (list 2 2 0)))) ;; always even size
 (define lights-length (length lights)) ;some optimization
 (define (set-dot x y colors) (setpos x y) (dot dot-size
-	(to-255 (car colors))
-	(to-255 (cadr colors))
-	(to-255 (caddr colors))))
+	(in-255 (car colors))
+	(in-255 (cadr colors))
+	(in-255 (caddr colors))))
 
 (define (cadr x)
   (car (cdr x)))
 (define (caddr x)
   (car (cdr (cdr x))))
 
-(define (to-255 value) (- 255 (min 255 value)))
+(define (in-255 value) (min 255 value))
 
 (define (map proc items)
   (if (null? items)
@@ -32,33 +31,18 @@
 (define (sum-lists a b) ; have to be equal size
 	(if (null? a) nil (cons (+ (car a) (car b)) (sum-lists (cdr a) (cdr b)))))
 
-(define (get-by-index alist start index list-length)
-		(cond
-			((>= index list-length) nil)
-			((= start index) (car alist))
-			(else (get-by-index (cdr alist) (+ start 1) index list-length))))
-
-(define (spheres-by-index index)
-	(get-by-index spheres 0 index spheres-length))
-
-(define (param-by-index sphere index)
-	(get-by-index sphere 0 index 5))
-
-(define (lights-by-index index)
-	(get-by-index lights 0 index lights-length))
-
 (define (square x) (* x x))
 
-; (define (dot-product a b)
-; 	(+
-; 		(* (car a) (car b))
-; 		(* (cadr a) (cadr b))
-; 		(* (caddr a) (caddr b))))
+(define (dot-product a b) ;for some reason works faster than tail recursive implementation
+	(+
+		(* (car a) (car b))
+		(* (cadr a) (cadr b))
+		(* (caddr a) (caddr b))))
 
-(define (dot-product a b)
-	(define (dot-product-iter a b sum)
-		(if (null? a) sum (dot-product-iter (cdr a) (cdr b) (+ (* (car a) (car b)) sum))))
-	(dot-product-iter a b 0))
+; (define (dot-product a b)
+; 	(define (dot-product-iter a b sum)
+; 		(if (null? a) sum (dot-product-iter (cdr a) (cdr b) (+ (* (car a) (car b)) sum))))
+; 	(dot-product-iter a b 0))
 
 (define (a-minus-bk a b k)
 	(list
@@ -66,22 +50,18 @@
 		(- (cadr a) (* (cadr b) k))
 		(- (caddr a) (* (caddr b) k))))
 
-
 ; (define (a-minus-bk a b k)
-; 	(sum-lists a (map (lambda (b-elem) (- (* b-elem k))) b)))
-
-; (define (a-minus-bk a b k)
-; 	(if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
-
+;  	(if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
 
 (define closest-intersection (mu (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
-	(define (get-closest-sphere v q)
-		(define curr-sphere (spheres-by-index q))
-		(cond
-			((null? curr-sphere) v)
-			(else
+	(define (get-closest-sphere v spheres-list)
+		(if (null? spheres-list)
+			v
+			(begin
+				(define curr-sphere (car spheres-list))
 				(define radius (car curr-sphere))
-				(define j (a-minus-bk source (cadr curr-sphere) 1))
+				(define curr-sphere (cdr curr-sphere))
+				(define j (a-minus-bk source (car curr-sphere) 1))
 				(define a (* 2 (dot-product direction direction)))
 				(define b (- (* 2 (dot-product j direction))))
 				(define discr (- (square b) (* 2 a (- (dot-product j j) (square radius)))))
@@ -99,43 +79,43 @@
 								(define v curr-sphere)
 								(set! min-dist sol2))) ;set is because mu
 						))
-				(get-closest-sphere v (+ q 1)))))
-	(get-closest-sphere 0 0)))
+				(get-closest-sphere v (cdr spheres-list)))))
+	(get-closest-sphere 0 spheres)))
 
 
 (define (trace-ray source direction t_min t_max depth) ;; would be great to make it tail-recursive
 	(define min-dist canv-size)
-	(define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere
+	(define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
 	(if (number? closest-sphere) ; if no intersection
 		(list 0 0 0) ; black
 		(begin
 			(define intersection (a-minus-bk source direction (- min-dist)))
-			(define normal (a-minus-bk intersection (cadr closest-sphere) 1))
+			(define normal (a-minus-bk intersection (car closest-sphere) 1))
+			(define closest-sphere (cdr closest-sphere)) ;; get to color
 			(define n (dot-product normal normal))
-			(define (get-illumination index illumination)
-				(define light (lights-by-index index))
-				(cond
-					((null? light) illumination)
-					(else (begin
-						(define intensity (car light))
+			(define (get-illumination lights-list illumination)
+				(if (null? lights-list)
+					illumination
+					(begin
+						(define light (car lights-list))
 						(define light-vector (a-minus-bk (cadr light) intersection 1))
 						(define k (dot-product normal light-vector))
 						(define m (a-minus-bk light-vector normal (/ (* 2 k) n)))
 						(define illumination (+ illumination
 							(*
 								(if (number? (closest-intersection intersection light-vector (/ 1 canv-size) 1)) 1 0)
-								intensity
+								(car light)
 								(+
 									(max 0 (/ k (sqrt (* (dot-product light-vector light-vector) n))))
 									(max 0 (pow
 										(/
 											(dot-product m direction)
 											(sqrt (* (dot-product m m) (dot-product direction direction))))
-										(param-by-index closest-sphere 3))))))) ;; get specular_exponent 4th element
-						(get-illumination (+ index 1) illumination)))))
-			(define illumination (get-illumination 0 ambient-light))
-			(define local-color (map (lambda (channel) (* channel 2.833 illumination)) (caddr closest-sphere)))
-			(define reflection (/ (param-by-index closest-sphere 4) 9)) ;; get reflectance
+										(cadr closest-sphere))))))) ;; get specular_exponent 4th element
+						(get-illumination (cdr lights-list) illumination))))
+			(define illumination (get-illumination lights ambient-light))
+			(define local-color (map (lambda (channel) (* channel 2.833 illumination)) (car closest-sphere)))
+			(define reflection (/ (caddr closest-sphere) 9)) ;; get reflectance
 			(if (> depth 0)
 				(begin
 					(define local-color (map (lambda (channel) (* channel (- 1 reflection))) local-color))
@@ -164,7 +144,7 @@
 				y-top
 				(trace-ray
 					camera
-					(list (/ x-left canv-size)(/ y-top canv-size) 1)
+					(list (/ x-left canv-size) (/ y-top canv-size) 1)
 					1
 					canv-size
 					2)) ; reflection depth
