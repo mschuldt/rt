@@ -151,3 +151,22 @@
 			(draw-x (+ x-left dot-size) x-right)))))
 
 (define (draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; testing functions
+
+(define-macro (time-eval code)
+  (list 'let '((begin-time (time)))
+        code
+        '(let ((dif (- (time) begin-time)))
+           (if (> dif 60)
+               (print (list 'run 'time: (quotient dif 60) 'minutes (modulo dif 60) 'seconds))
+               (print (list 'run 'time: dif 'seconds))))))
+
+(define (time-draw)
+  (time-eval (draw)))
+
+
+
+
