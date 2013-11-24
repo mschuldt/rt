@@ -502,6 +502,10 @@ def tscheme_dot(size, r=0, g=0, b=0):
     turtle.dot(size, (r, g, b))
     return okay
 
+from time import time
+@primitive("time")
+def scheme_time():
+    return time()
 
 @primitive("okay?")
 def scheme_okay_p(expr):
