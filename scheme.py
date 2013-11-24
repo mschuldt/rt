@@ -109,7 +109,6 @@ class Frame:
 
     def lookup(self, symbol):
         """Return the value bound to SYMBOL.  Errors if SYMBOL is not found."""
-        val = self.bindings.get(symbol)
         if symbol in self.bindings:
             return self.bindings[symbol]
         if self.parent:
