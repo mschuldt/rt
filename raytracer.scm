@@ -1,5 +1,6 @@
 (define canv-size 300)
-(define dot-size 5)
+(define dot-size 10)
+
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
 	(list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
@@ -53,34 +54,60 @@
 ; (define (a-minus-bk a b k)
 ;  	(if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
 
+
+
 (define closest-intersection (mu (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
-	(define (get-closest-sphere v spheres-list)
-		(if (null? spheres-list)
-			v
-			(begin
-				(define curr-sphere (car spheres-list))
-				(define radius (car curr-sphere))
-				(define curr-sphere (cdr curr-sphere))
-				(define j (a-minus-bk source (car curr-sphere) 1))
-				(define a (* 2 (dot-product direction direction)))
-				(define b (- (* 2 (dot-product j direction))))
-				(define discr (- (square b) (* 2 a (- (dot-product j j) (square radius)))))
-				(if (> discr 0)
-					(begin
-						(define discr (sqrt discr))
-						(define sol1 (/ (- b discr) a))
-						(if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
-							(begin
-								(define v curr-sphere)
-								(set! min-dist sol1))) ;set is because mu
-						(define sol2 (/ (- b (- discr)) a))
-						(if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
-							(begin
-								(define v curr-sphere)
-								(set! min-dist sol2))) ;set is because mu
-						))
-				(get-closest-sphere v (cdr spheres-list)))))
 	(get-closest-sphere 0 spheres)))
+
+(define get-closest-sphere
+  (mu (v spheres-list)
+      (if (null? spheres-list)
+          v
+          (begin
+            (define curr-sphere (car spheres-list))
+            (define radius (car curr-sphere))
+            (define curr-sphere (cdr curr-sphere))
+            (define j (a-minus-bk source (car curr-sphere) 1))
+            (define a (* 2 (dot-product direction direction)))
+            (define b (- (* 2 (dot-product j direction))))
+            (define discr (- (square b) (* 2 a (- (dot-product j j) (square radius)))))
+            (if (> discr 0)
+                (begin
+                  (define discr (sqrt discr))
+                  (define sol1 (/ (- b discr) a))
+                  (if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
+                      (begin
+                        (define v curr-sphere)
+                        (set! min-dist sol1))) ;set is because mu
+                  (define sol2 (/ (- b (- discr)) a))
+                  (if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
+                      (begin
+                        (define v curr-sphere)
+                        (set! min-dist sol2))) ;set is because mu
+                  ))
+            (get-closest-sphere v (cdr spheres-list))))))
+
+(define get-illumination
+  (mu (lights-list illumination)
+      (if (null? lights-list)
+          illumination
+          (begin
+            (define light (car lights-list))
+            (define light-vector (a-minus-bk (cadr light) intersection 1))
+            (define k (dot-product normal light-vector))
+            (define m (a-minus-bk light-vector normal (/ (* 2 k) n)))
+            (define illumination (+ illumination
+                                    (*
+                                     (if (number? (closest-intersection intersection light-vector (/ 1 canv-size) 1)) 1 0)
+                                     (car light)
+                                     (+
+                                      (max 0 (/ k (sqrt (* (dot-product light-vector light-vector) n))))
+                                      (max 0 (pow
+                                              (/
+                                               (dot-product m direction)
+                                               (sqrt (* (dot-product m m) (dot-product direction direction))))
+                                              (cadr closest-sphere))))))) ;; get specular_exponent 4th element
+            (get-illumination (cdr lights-list) illumination)))))
 
 
 (define (trace-ray source direction t_min t_max depth) ;; would be great to make it tail-recursive
@@ -93,26 +120,7 @@
 			(define normal (a-minus-bk intersection (car closest-sphere) 1))
 			(define closest-sphere (cdr closest-sphere)) ;; get to color
 			(define n (dot-product normal normal))
-			(define (get-illumination lights-list illumination)
-				(if (null? lights-list)
-					illumination
-					(begin
-						(define light (car lights-list))
-						(define light-vector (a-minus-bk (cadr light) intersection 1))
-						(define k (dot-product normal light-vector))
-						(define m (a-minus-bk light-vector normal (/ (* 2 k) n)))
-						(define illumination (+ illumination
-							(*
-								(if (number? (closest-intersection intersection light-vector (/ 1 canv-size) 1)) 1 0)
-								(car light)
-								(+
-									(max 0 (/ k (sqrt (* (dot-product light-vector light-vector) n))))
-									(max 0 (pow
-										(/
-											(dot-product m direction)
-											(sqrt (* (dot-product m m) (dot-product direction direction))))
-										(cadr closest-sphere))))))) ;; get specular_exponent 4th element
-						(get-illumination (cdr lights-list) illumination))))
+			
 			(define illumination (get-illumination lights ambient-light))
 			(define local-color (map (lambda (channel) (* channel 2.833 illumination)) (car closest-sphere)))
 			(define reflection (/ (caddr closest-sphere) 9)) ;; get reflectance
@@ -137,18 +145,18 @@
 			(draw-y (- y-top dot-size) y-bottom))))
 
 (define draw-x (mu (x-left x-right)
-	(if (< x-left x-right)
-		(begin
-			(set-dot
-				x-left
-				y-top
-				(trace-ray
-					camera
-					(list (/ x-left canv-size) (/ y-top canv-size) 1)
-					1
-					canv-size
-					2)) ; reflection depth
-			(draw-x (+ x-left dot-size) x-right)))))
+                   (if (< x-left x-right)
+                       (begin
+                         (set-dot
+                          x-left
+                          y-top
+                          (trace-ray
+                           camera
+                           (list (/ x-left canv-size) (/ y-top canv-size) 1)
+                           1
+                           canv-size
+                           2)) ; reflection depth
+                         (draw-x (+ x-left dot-size) x-right)))))
 
 (define (draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
 
