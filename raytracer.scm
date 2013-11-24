@@ -1,21 +1,82 @@
 (define canv-size 300)
 (define dot-size 5)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;function expansion
+(define-macro (expand-rcalls def ntimes)
+  (append  (list (car def))
+           (list (cadr def))
+           (expand-in (car (car (cdr def))) ;;name
+                      (cdr (car (cdr def))) ;;args
+                      (cdr (cdr def)) ;;body
+                      (cdr (cdr def)) ;;form
+                      ntimes)))
+
+(define-macro (expand-mu-rcalls name def ntimes)
+  (append '(mu)
+          (list (car (cdr def)))
+          (expand-in name  ;;name
+                     (car (cdr def)) ;;args
+                     (cdr (cdr def)) ;;body
+                     (cdr (cdr def)) ;;form
+                     ntimes)))
+
+
+(define (zip a b)
+  (if (or (null? a) (null? b))
+      nil
+      (cons (cons (car a) (car b)) (zip (cdr a) (cdr b)))))
+
+(define (expand-in name args body form ntimes)
+  (if (and (list? form)
+	   (> ntimes 0))
+      (if (equal? (car form) name)
+	  ;;expand
+	  (append '(begin) (map (lambda (x)
+                                  (list 'set! (car x) (cdr x)))
+				(zip args (cdr form)))
+		  (expand-in name args body body (- ntimes 1))) ;;or (,@body?
+	  ;;else, attempt to expand body
+	  (map (lambda (bod)
+                 (expand-in name args body bod ntimes))
+               form))
+      form))
+
+
+(expand-rcalls
+ (define (fact n)
+   (if (= n 0)
+       1
+       (* n (fact (- n 1)))))
+ 5)
+
+(define fact2
+  (expand-mu-rcalls
+   fact2
+   (mu (n)
+       (if (= n 0)
+           1
+           (* n (fact2 (- n 1)))))
+   5))
+;;end function expansion
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
-	(list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
-	(list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
-	(list 1 (list (- 2)  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
-	(list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
-	))
+                 (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
+                 (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
+                 (list 1 (list (- 2)  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
+                 (list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
+                 ))
 (define lights (list (list 8 (list 2 2 0)))) ;; always even size
 (define camera (list 0 1 0))
 (define ambient-light 2)
 (define lights-length (length lights)) ;some optimization
 (define (set-dot x y colors) (setpos x y) (dot dot-size
-	(in-255 (car colors))
-	(in-255 (cadr colors))
-	(in-255 (caddr colors))))
+                                               (in-255 (car colors))
+                                               (in-255 (cadr colors))
+                                               (in-255 (caddr colors))))
 
 (define (cadr x)
   (car (cdr x)))
