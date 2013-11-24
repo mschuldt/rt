@@ -21,7 +21,6 @@
                      (cdr (cdr def)) ;;form
                      ntimes)))
 
-
 (define (zip a b)
   (if (or (null? a) (null? b))
       nil
@@ -43,7 +42,6 @@
                form))
       form))
 
-
 (expand-rcalls
  (define (fact n)
    (if (= n 0)
@@ -63,7 +61,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
+;; Sphere: radius (cx  cy  cz) (R  G  B) specular_exponent reflectiveness
 (define spheres (list
                  (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
                  (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
@@ -210,9 +208,6 @@
       (begin
         (draw-x (- half) half)
         (draw-y (- y-top dot-size) y-bottom))))
-
-
-
 
 
 (define draw-x (mu (x-left x-right)
