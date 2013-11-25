@@ -60,13 +60,6 @@
 ;;NOTE: now that we have `okay?' we can get rid of this macro entirely
 ;;      but why not just leave it as an additional test
 (define-macro (assert-equal form expect)
-  "modifies assert test so that it can detect 'okay', then calls `assert-equal2'"
-  (if (equal? expect 'okay)
-      (begin (set! form (list 'okay? form))
-             (set! expect 'True)))
-  (list 'assert-equal2 form expect (list 'quote form)))
-
-(define-macro (assert-equal form expect)
   (if (equal? expect 'okay)
       (list 'assert-equal2
             (list 'okay? form)
@@ -113,6 +106,7 @@
         range
         (make-range (- num 1) (cons num range))))
   (make-range (- num 1) nil))
+
 
 (assert-equal (range 5)
               '(0 1 2 3 4))
