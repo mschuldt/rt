@@ -491,6 +491,7 @@ class Async:
         self.queue = Queue()
         self.func = func
         self.args = args
+        self.env = env
         def worker():
             self.queue.put(scheme_apply(func, args, env)) 
         self.process = Process(target=worker, args=())
@@ -503,7 +504,11 @@ class Async:
         return self.queue.get()
         
     def __repr__ (self):
-        return "(async {0} {1}".format(self.func, self.args)
+        return "Async({0}, {1}, {2})".format(self.func, self.args, self.env)
+        
+    def __str__(self):
+        return "(async {0} {1}) ".format(self.func, self.args)
+        
 
 @primitive("process?")
 def async_process_p (thing):
