@@ -108,11 +108,12 @@
 
 (define (range num)
   "range from 0 to NUM"
-  (define (make-range num)
+  (define (make-range num range)
     (if (= num -1)
-        nil
-        (cons num (make-range (- num 1)))))
-  (reverse (make-range (- num 1))))
+        range
+        (make-range (- num 1) (cons num range))))
+  (make-range (- num 1) nil))
+
 
 (assert-equal (range 5)
               '(0 1 2 3 4))
