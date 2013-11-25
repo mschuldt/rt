@@ -114,7 +114,6 @@
         (make-range (- num 1) (cons num range))))
   (make-range (- num 1) nil))
 
-
 (assert-equal (range 5)
               '(0 1 2 3 4))
 
@@ -722,10 +721,14 @@ okay)
  '(5 1 2 3 4))
 
 (define (map proc items)
-  (if (null? items)
-      nil
-      (cons (proc (car items))
-            (map proc (cdr items)))))
+  (define (mapp proc items mapped)
+    (if (null? items)
+        mapped
+        (mapp proc (cdr items)
+              (cons (proc (car items)) mapped))))
+  (mapp proc items nil))
+  
+
 (assert-equal (map abs (list -10 2.5 -11.6 17))
  '(10 2.5 11.6 17))
 
