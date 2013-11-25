@@ -765,7 +765,7 @@ okay)
         mapped
         (mapp proc (cdr items)
               (cons (proc (car items)) mapped))))
-  (mapp proc items nil))
+  (reverse (mapp proc items nil)))
   
 
 (assert-equal (map abs (list -10 2.5 -11.6 17))
