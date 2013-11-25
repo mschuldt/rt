@@ -1,3 +1,4 @@
+
 (define (range from to)
   "integer range [FROM, TO)"
   (set! from (- from 1))
@@ -54,7 +55,107 @@
                  (_do_ (cdr lst)))))
         (list '_do_ (cadr var--list))))
 
+(define (cadr x)
+  (car (cdr x)))
 
+(define (caar x)
+  (car (car x)))
+
+(define (caaar x)
+;;  "Return the `car' of the `car' of the `car' of X."
+  (car (car (car x))))
+
+(define (caadr x)
+;;  "Return the `car' of the `car' of the `cdr' of X."
+  (car (car (cdr x))))
+
+(define (cadar x)
+;;  "Return the `car' of the `cdr' of the `car' of X."
+  (car (cdr (car x))))
+
+(define (caddr x)
+;;  "Return the `car' of the `cdr' of the `cdr' of X."
+  (car (cdr (cdr x))))
+
+(define (cdaar x)
+;;  "Return the `cdr' of the `car' of the `car' of X."
+  (cdr (car (car x))))
+
+(define (cdadr x)
+;;  "Return the `cdr' of the `car' of the `cdr' of X."
+  (cdr (car (cdr x))))
+
+(define (cddar x)
+;;  "Return the `cdr' of the `cdr' of the `car' of X."
+  (cdr (cdr (car x))))
+
+(define (cdddr x)
+;;  "Return the `cdr' of the `cdr' of the `cdr' of X."
+  (cdr (cdr (cdr x))))
+
+(define (caaaar x)
+;;  "Return the `car' of the `car' of the `car' of the `car' of X."
+  (car (car (car (car x)))))
+
+(define (caaadr x)
+;;  "Return the `car' of the `car' of the `car' of the `cdr' of X."
+  (car (car (car (cdr x)))))
+
+(define (caadar x)
+;;  "Return the `car' of the `car' of the `cdr' of the `car' of X."
+  (car (car (cdr (car x)))))
+
+(define (caaddr x)
+;;  "Return the `car' of the `car' of the `cdr' of the `cdr' of X."
+  (car (car (cdr (cdr x)))))
+
+(define (cadaar x)
+;;  "Return the `car' of the `cdr' of the `car' of the `car' of X."
+  (car (cdr (car (car x)))))
+
+(define (cadadr x)
+;;  "Return the `car' of the `cdr' of the `car' of the `cdr' of X."
+  (car (cdr (car (cdr x)))))
+
+(define (caddar x)
+;;  "Return the `car' of the `cdr' of the `cdr' of the `car' of X."
+  (car (cdr (cdr (car x)))))
+
+(define (cadddr x)
+;;  "Return the `car' of the `cdr' of the `cdr' of the `cdr' of X."
+  (car (cdr (cdr (cdr x)))))
+
+(define (cdaaar x)
+;;  "Return the `cdr' of the `car' of the `car' of the `car' of X."
+  (cdr (car (car (car x)))))
+
+(define (cdaadr x)
+;;  "Return the `cdr' of the `car' of the `car' of the `cdr' of X."
+  (cdr (car (car (cdr x)))))
+
+(define (cdadar x)
+;;  "Return the `cdr' of the `car' of the `cdr' of the `car' of X."
+  (cdr (car (cdr (car x)))))
+
+(define (cdaddr x)
+;;  "Return the `cdr' of the `car' of the `cdr' of the `cdr' of X."
+  (cdr (car (cdr (cdr x)))))
+
+(define (cddaar x)
+;;  "Return the `cdr' of the `cdr' of the `car' of the `car' of X."
+  (cdr (cdr (car (car x)))))
+
+(define (cddadr x)
+;;  "Return the `cdr' of the `cdr' of the `car' of the `cdr' of X."
+  (cdr (cdr (car (cdr x)))))
+
+(define (cdddar x)
+;;  "Return the `cdr' of the `cdr' of the `cdr' of the `car' of X."
+  (cdr (cdr (cdr (car x)))))
+
+(define (cddddr x)
+;;  "Return the `cdr' of the `cdr' of the `cdr' of the `cdr' of X."
+  (cdr (cdr (cdr (cdr x)))))
 
 ;;;; testing functions -------------------------------------
 (define tests-passed 0) ;;number of tests passed
