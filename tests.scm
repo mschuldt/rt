@@ -455,6 +455,51 @@
       6))
  57)
 
+;;; tests for multiprocesssing =========================================
+
+;;;calculate the sum of the 8th powers of numbers from 0 to 40
+;;; => 25959490005332
+
+(define (range from to)
+  "integer range [FROM, TO)"
+  (set! from (- from 1))
+  (define (make-range num range)
+    (if (= num from)
+        range
+        (make-range (- num 1) (cons num range))))
+  (make-range (- to 1) nil))
+
+(define (normal) ;;normal single threaded
+  (define x (map (lambda (x) (* x x x x x x x x)) (range 0 40)))
+  (define sum 0)
+  (for n in x :
+       (set! sum (+ sum n)))
+  sum)
+
+
+(define (4-processes) ;; use 4 threads
+  (define (worker start end)
+    (define x (map (lambda (x) (* x x x x x x x x)) (range start end)))
+    (define sum 0)
+    (for n in x :
+         (set! sum (+ sum n)))
+    sum)
+
+  (define processes (list (async worker (list 0 10))
+                          (async worker (list 10 20))
+                          (async worker (list 20 30))
+                          (async worker (list 30 40))))
+
+  (map async-start processes)
+  
+  (define total 0)
+  (for n in (map async-get processes) :
+       (set! total (+ total n)))
+  
+  total)
+
+(assert-equal (normal) 25959490005332)
+(assert-equal (normal) (4-processes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Move the following (exit) line to run additional tests. ;;;
