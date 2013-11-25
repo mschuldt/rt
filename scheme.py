@@ -478,6 +478,55 @@ def scheme_optimized_eval(expr, env):
                 raise SchemeError("Cannot call {0}".format(str(procedure)))
 
 
+
+
+################################################################
+# multiprocessing!!!
+################################################################
+
+from multiprocessing import Process, Queue
+
+class Async:
+    def __init__ (self, func, args, env):
+        self.queue = Queue()
+        self.func = func
+        self.args = args
+        def worker():
+            self.queue.put(scheme_apply(func, args, env)) 
+        self.process = Process(target=worker, args=())
+        
+    def start(self):
+        self.process.start()
+#TODO: how to force stop? pause?        
+    def get(self):
+        self.process.join()
+        return self.queue.get()
+        
+    def __repr__ (self):
+        return "(async {0} {1}".format(self.func, self.args)
+
+@primitive("process?")
+def async_process_p (thing):
+    return isinstance(thing, Async)
+    
+@primitive("async-start")
+def async_start (process):
+    if async_process_p(process):
+        return process.start()
+    SchemeError("Invalid async process: {0}".format(process))
+
+def scheme_async(func, args, env):
+    #TODO: check FUNC validity
+    return Async(func, args, env)
+
+@primitive("async-get")
+def async_get(process):
+    if async_process_p(process):
+        return process.get()
+    SchemeError("Invalid async process: {0}".format(process))
+    
+
+
 ################################################################
 # Uncomment the following line to apply tail call optimization #
 ################################################################
@@ -515,8 +564,7 @@ def read_eval_print_loop(next_line, env, quiet=False, startup=False,
                 return
         except EOFError:  # <Control>-D, etc.
             return
-
-
+            
 def scheme_load(*args):
     """Load a Scheme source file. ARGS should be of the form (SYM, ENV) or (SYM,
     QUIET, ENV). The file named SYM is loaded in environment ENV, with verbosity
@@ -557,6 +605,7 @@ def create_global_frame():
     env.define("eval", PrimitiveProcedure(scheme_eval, True))
     env.define("apply", PrimitiveProcedure(scheme_apply, True))
     env.define("load", PrimitiveProcedure(scheme_load, True))
+    env.define("async", PrimitiveProcedure(scheme_async, True))
     add_primitives(env)
     return env
 
@@ -582,3 +631,5 @@ def run(*argv):
     read_eval_print_loop(next_line, create_global_frame(), startup=True,
                          interactive=interactive, load_files=load_files)
     tscheme_exitonclick()
+
+    
