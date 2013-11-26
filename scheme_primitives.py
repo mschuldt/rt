@@ -535,6 +535,10 @@ def scheme_type_of(expr):
 class Vector(tuple):
     def __str__(self):
         return "[" + " ".join(map(str, self)) + "]"
+    def __repr__(self):
+        if not self: return "scheme_vector()"
+        if len(self) == 1: return "scheme_vector({0})".format(str(self[0]))
+        return "scheme_vector(" + str(self[0]) +", " + ", ".join(map(str, self[1:])) + ")" #FIX: this does not work for strings: scheme_vector("hi") => scheme_vector(hi)
 
 #TODO: type checking for all vector primitives
 @primitive("vector")
