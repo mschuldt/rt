@@ -566,7 +566,7 @@ def scheme_list_to_vector(form):
     return Vector(lst)
     
 @primitive("vector->list")
-def scheme_list_to_vector(vec):
+def scheme_vector_to_list(vec):
     vec = vec[::-1]
     new = Pair(vec[0], nil)
     for elem in vec[1:]:
