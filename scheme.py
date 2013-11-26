@@ -25,7 +25,7 @@ def scheme_eval(expr, env):
     # Evaluate Atoms
     if scheme_symbolp(expr):
         return env.lookup(expr)
-    elif scheme_atomp(expr) or scheme_stringp(expr) or expr is okay:
+    elif scheme_atomp(expr) or scheme_stringp(expr) or expr is okay or isinstance(expr, Vector):
         return expr
 
     # All non-atomic expressions are lists.
@@ -505,7 +505,7 @@ class Async:
         
     def __repr__ (self):
         return "Async({0}, {1}, {2})".format(self.func, self.args, self.env)
-        
+
     def __str__(self):
         return "(async {0} {1}) ".format(self.func, self.args)
         
