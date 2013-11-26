@@ -531,6 +531,19 @@ def scheme_type_of(expr):
         return 'okay'
     return type(expr)
 
+
+class Vector(tuple):
+    def __str__(self):
+        return "[" + " ".join(map(str, self)) + "]"
+    
+@primitive("vector")
+def scheme_vector(*things):
+    return Vector(things)
+
+@primitive("vector?")
+def scheme_vector_p(form):
+    return isinstance(form, Vector)
+
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"
@@ -548,4 +561,3 @@ def scheme_python_apply(func, args):
     if callable(func):
         return func(*args)
     SchemeError("unknown identifier: " + str(func))
-
