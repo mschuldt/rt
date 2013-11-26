@@ -28,16 +28,16 @@
 
 (define (expand-in name args body form ntimes)
   (if (and (list? form)
-	   (> ntimes 0))
+           (> ntimes 0))
       (if (equal? (car form) name)
-	  ;;expand
-	  (append '(begin) (map (lambda (x)
+          ;;expand
+          (append '(begin) (map (lambda (x)
                                   (list 'set! (car x) (cdr x)))
-				(zip args (cdr form)))
-		  (expand-in name args body body (- ntimes 1))) ;;or (,@body?
-          
-	  ;;else, attempt to expand body
-	  (map (lambda (bod)
+                                (zip args (cdr form)))
+                  (expand-in name args body body (- ntimes 1))) ;;or (,@body?
+
+          ;;else, attempt to expand body
+          (map (lambda (bod)
                  (expand-in name args body bod ntimes))
                form))
       form))
@@ -101,9 +101,9 @@
    (* (caddr a) (caddr b))))
 
 ;; (define (dot-product a b)
-;; 	(define (dot-product-iter a b sum)
-;; 		(if (null? a) sum (dot-product-iter (cdr a) (cdr b) (+ (* (car a) (car b)) sum))))
-;; 	(dot-product-iter a b 0))
+;;      (define (dot-product-iter a b sum)
+;;              (if (null? a) sum (dot-product-iter (cdr a) (cdr b) (+ (* (car a) (car b)) sum))))
+;;      (dot-product-iter a b 0))
 
 (define (a-minus-bk a b k)
   (list
@@ -112,7 +112,7 @@
    (- (caddr a) (* (caddr b) k))))
 
 ;; (define (a-minus-bk a b k)
-;;  	(if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
+;;      (if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
 
 
 
@@ -183,7 +183,7 @@
         (define normal (a-minus-bk intersection (car closest-sphere) 1))
         (define closest-sphere (cdr closest-sphere)) ;; get to color
         (define n (dot-product normal normal))
-        
+
         (define illumination (get-illumination lights ambient-light))
         (define local-color (map (lambda (channel) (* channel 2.833 illumination)) (car closest-sphere)))
         (define reflection (/ (caddr closest-sphere) 9)) ;; get reflectance
@@ -240,7 +240,3 @@
 
 (define (time-draw)
   (time-eval (draw)))
-
-
-
-
