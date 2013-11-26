@@ -535,7 +535,8 @@ def scheme_type_of(expr):
 class Vector(tuple):
     def __str__(self):
         return "[" + " ".join(map(str, self)) + "]"
-    
+
+#TODO: type checking for all vector primitives
 @primitive("vector")
 def scheme_vector(*things):
     return Vector(things)
@@ -544,6 +545,35 @@ def scheme_vector(*things):
 def scheme_vector_p(form):
     return isinstance(form, Vector)
 
+@primitive("vector-ref")
+def scheme_vector_ref(vec, pos):
+    return vec[pos]
+
+@primitive("make-vector")
+def scheme_make_vector(num, init = nil):
+    return Vector(init for _ in range(num))
+    
+@primitive("list->vector")
+def scheme_list_to_vector(form):
+    lst = []
+    while form is not nil:
+        lst.append(form.first)
+        form = form.second
+    return Vector(lst)
+    
+@primitive("vector->list")
+def scheme_list_to_vector(vec):
+    vec = vec[::-1]
+    new = Pair(vec[0], nil)
+    for elem in vec[1:]:
+        new = Pair(elem, new)
+    return new
+
+@primitive("vector-length")
+def scheme_vector_length(form):
+    return len(form)
+    
+    
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"
