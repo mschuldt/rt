@@ -501,6 +501,45 @@
 (assert-equal (normal) 25959490005332)
 (assert-equal (normal) (4-processes))
 
+;;;vector tests
+
+
+(assert-equal (to-string (vector 1  23 'a))
+              "[1 23 a]")
+
+(define x (vector 1 'a "h"))
+(assert-equal (vector? x)
+              'True)
+(assert-equal (to-string (vector))
+              "[]")
+(assert-equal (vector-length x)
+              3)
+
+(assert-equal (vector-length (vector))
+              0)
+
+(define lst (vector->list x))
+(assert-equal lst
+              (list 1 'a "h"))
+(assert-equal (length lst)
+              3)
+
+(assert-equal (vector-ref x 0)
+              1)
+(assert-equal (vector-ref x 1)
+              'a)
+(assert-equal (vector-ref x 2)
+              '"h")
+(assert-equal (car (cdr lst))
+              (vector-ref x 1))
+
+(assert-equal (equal? x (list->vector (vector->list x)))
+              'True)
+
+(assert-equal (equal? lst (vector->list (list->vector lst)))
+              'True)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Move the following (exit) line to run additional tests. ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
