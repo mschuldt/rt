@@ -54,7 +54,7 @@ def check_type(val, predicate, k, name):
     """Returns VAL.  Raises a SchemeError if not PREDICATE(VAL)
     using "argument K of NAME" to describe the offending value."""
     if not predicate(val):
-        msg = "argument {0} of {1} has wrong type ({2})"
+        msg = "argument {0} of {1} has wrong type ({2})" + str(val)
         raise SchemeError(msg.format(k, name, type(val).__name__))
     return val
 
@@ -348,6 +348,7 @@ def _tscheme_prep():
         turtle.title("Scheme Turtles")
         turtle.colormode(255)
         turtle.mode('logo')
+        turtle.setundobuffer(0)
         turtle.shape("turtle")
         turtle.screensize(600, 600)
         turtle.tracer(500)
@@ -408,12 +409,33 @@ def tscheme_setposition(x, y):
     turtle.setposition(x, y)
     return okay
 
+@primitive("setx")
+def tscheme_setx(x):
+    _check_nums(x)
+    _tscheme_prep()
+    turtle.setx(x)
+    return okay
+
+@primitive("sety")
+def tscheme_sety(y):
+    _check_nums(y)
+    _tscheme_prep()
+    turtle.sety(y)
+    return okay
+
 @primitive("setheading", "seth")
 def tscheme_setheading(h):
     """Set the turtle's heading H degrees clockwise from north (up)."""
     _check_nums(h)
     _tscheme_prep()
     turtle.setheading(h)
+    return okay
+
+@primitive("pensize", "width")
+def tscheme_pensize(size):
+    _check_nums(size)
+    _tscheme_prep()
+    turtle.pensize(size)
     return okay
 
 @primitive("penup", "pu")
@@ -452,12 +474,12 @@ def tscheme_clear():
     return okay
 
 @primitive("color")
-def tscheme_color(c):
+def tscheme_color(r, g, b):
     """Set the color to C, a string such as '"red"' or '"#ffc0c0"' (representing
     hexadecimal red, green, and blue values."""
     _tscheme_prep()
-    check_type(c, scheme_stringp, 0, "color")
-    turtle.color(eval(c))
+    _check_nums(r, g, b)
+    turtle.color(r, g, b)
     return okay
 
 @primitive("begin_fill")
