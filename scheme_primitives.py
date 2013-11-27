@@ -350,8 +350,10 @@ def _tscheme_prep():
         turtle.mode('logo')
         turtle.shape("turtle")
         turtle.screensize(600, 600)
-        turtle.tracer(500)
-        turtle.tracer(0)
+        turtle.setundobuffer(0)
+        #turtle.tracer(500) ;;this is slower
+        turtle.tracer(0) 
+
         
 @primitive("update")
 def tscheme_update():
@@ -514,6 +516,13 @@ def tscheme_dot(size, r=0, g=0, b=0):
     _check_nums(r, g, b)
     turtle.dot(size, (r, g, b))
     return okay
+
+
+@primitive("dot2")
+def tscheme_dot(size, color_vector):
+    _tscheme_prep()
+    turtle.dot(size, color_vector)
+    return okay    
 
 from time import time
 @primitive("time")
