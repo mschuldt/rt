@@ -145,8 +145,7 @@
                         (define v curr-sphere)
                         (set! min-dist sol2))) ;set is because mu
                   ))
-            (get-closest-sphere v (cdr spheres-list)))))
-  )
+            (get-closest-sphere v (cdr spheres-list))))))
 
 
 (define get-illumination
@@ -203,6 +202,67 @@
 
 (define half (/ canv-size 2))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define n-processors 6)
+
+(define (worker y-coor)
+  (define ret nil)
+  (define sub-contractor
+    (mu (x-left)
+        (if (< x-left half)
+            (begin
+              (set! ret (cons (list->vector (trace-ray
+                                             camera
+                                             (list (/ x-left canv-size)
+                                                   (/ y-coor canv-size) 1)
+                                             1
+                                             canv-size
+                                             2)) ; reflection depth
+                              ret))
+              (sub-contractor (+ x-left dot-size))))))
+  
+  (sub-contractor (- half))
+  (vector y-coor (list->vector ret)))
+
+(define (async-draw-y y-top y-bottom)
+  (define (spawn-workers y-coor num)
+    (if (or (= num 0)
+            (< y-coor y-bottom))
+        nil
+        (cons (async worker (list y-coor))
+              (spawn-workers (- y-coor dot-size) (- num 1)))))
+  (if (> y-top y-bottom)
+      (begin
+        (define workers (spawn-workers y-top n-processors))
+        (map async-start workers)
+        (map draw-points (map async-get workers))
+        (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))))
+
+(define (draw-points colors)
+  ;;COLORS is a vector with format: [y-coor colors]
+  ;;Where 'y-coor' is the y-coordinate of the line
+  ;;     and 'colors' is a vector of rgb color values (reversed)
+  (let ((y-coor (vector-ref colors 0))
+        (colors (vector-ref colors 1))
+        (length nil)
+        (draw-point (mu (index x-coor)
+                        (if (< index 0) nil
+                            (begin (set-dot
+                                    x-coor
+                                    y-coor
+                                    (vector->list (vector-ref colors index)))
+                                   (draw-point (- index 1)
+                                               (+ x-coor dot-size)))))))
+    (draw-point (- (vector-length colors) 1) (- half))))
+
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+
 (define (draw-y y-top y-bottom)
   (if (> y-top y-bottom)
       (begin
@@ -225,6 +285,7 @@
                          (draw-x (+ x-left dot-size) x-right)))))
 
 (define (draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
+(define (fast-draw) (speed 0) (penup) (async-draw-y half (- half)) (exitonclick))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
