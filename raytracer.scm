@@ -60,8 +60,7 @@
 ;;end function expansion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;; Sphere: radius (cx  cy  cz) (R  G  B) specular_exponent reflectiveness
+;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
                  (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
                  (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
@@ -100,21 +99,11 @@
    (* (cadr a) (cadr b))
    (* (caddr a) (caddr b))))
 
-;; (define (dot-product a b)
-;;      (define (dot-product-iter a b sum)
-;;              (if (null? a) sum (dot-product-iter (cdr a) (cdr b) (+ (* (car a) (car b)) sum))))
-;;      (dot-product-iter a b 0))
-
 (define (a-minus-bk a b k)
   (list
    (- (car a) (* (car b) k))
    (- (cadr a) (* (cadr b) k))
    (- (caddr a) (* (caddr b) k))))
-
-;; (define (a-minus-bk a b k)
-;;      (if (null? a) nil (cons (- (car a) (* (car b) k)) (a-minus-bk (cdr a) (cdr b) k))))
-
-
 
 (define closest-intersection (mu (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
                                  (get-closest-sphere 0 spheres)))
@@ -147,7 +136,6 @@
                   ))
             (get-closest-sphere v (cdr spheres-list))))))
 
-
 (define get-illumination
   (mu (lights-list illumination)
       (if (null? lights-list)
@@ -171,34 +159,32 @@
             (get-illumination (cdr lights-list) illumination)))))
 
 
-
-(define (trace-ray source direction t_min t_max depth) ;; would be great to make it tail-recursive
+(define (trace-ray source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
   (define min-dist canv-size)
   (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
   (if (number? closest-sphere) ; if no intersection
-      (list 0 0 0) ; black
+      prev-color
       (begin
         (define intersection (a-minus-bk source direction (- min-dist)))
         (define normal (a-minus-bk intersection (car closest-sphere) 1))
         (define closest-sphere (cdr closest-sphere)) ;; get to color
         (define n (dot-product normal normal))
-
         (define illumination (get-illumination lights ambient-light))
-        (define local-color (map (lambda (channel) (* channel 2.833 illumination)) (car closest-sphere)))
-        (define reflection (/ (caddr closest-sphere) 9)) ;; get reflectance
+        (define new-color (map (lambda (channel) (* channel 2.833 illumination prev-ref)) (car closest-sphere)))
+        (define curr-ref (/ (caddr closest-sphere) 9)) ;; get reflectance
         (if (> depth 0)
             (begin
-              (define local-color (map (lambda (channel) (* channel (- 1 reflection))) local-color))
-              (define new-ray (map (lambda (channel) (* channel reflection))
-                                   (trace-ray
-                                    intersection
-                                    (a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
-                                    (/ 1 canv-size)
-                                    canv-size
-                                    (- depth 1))))
-              (sum-lists new-ray local-color))
-            local-color))))
-
+              (define new-color (map (lambda (channel) (* channel (- 1 curr-ref))) new-color))
+              (define new-color (sum-lists new-color prev-color))
+              (trace-ray
+               intersection
+               (a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
+               (/ 1 canv-size)
+               canv-size
+               (- depth 1)
+               new-color
+               (* curr-ref prev-ref)))
+            (sum-lists new-color prev-color)))))
 
 (define half (/ canv-size 2))
 
@@ -208,7 +194,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define n-processors 6)
 
-(define (worker y-coor)
+(define (worker y-coor) 
   (define ret nil)
   (define sub-contractor
     (mu (x-left)
@@ -220,7 +206,9 @@
                                                    (/ y-coor canv-size) 1)
                                              1
                                              canv-size
-                                             2)) ; reflection depth
+                                             2 ;reflection depth
+                                             (list 0 0 0)
+                                             1)) 
                               ret))
               (sub-contractor (+ x-left dot-size))))))
   
@@ -258,7 +246,7 @@
                                                (+ x-coor dot-size)))))))
     (draw-point (- (vector-length colors) 1) (- half))))
 
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
@@ -268,7 +256,6 @@
       (begin
         (draw-x (- half) half)
         (draw-y (- y-top dot-size) y-bottom))))
-
 
 (define draw-x (mu (x-left x-right)
                    (if (< x-left x-right)
@@ -281,12 +268,13 @@
                            (list (/ x-left canv-size) (/ y-top canv-size) 1)
                            1
                            canv-size
-                           2)) ; reflection depth
+                           2 ; reflection depth
+                           (list 0 0 0)
+                           1))
                          (draw-x (+ x-left dot-size) x-right)))))
 
 (define (draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
 (define (fast-draw) (speed 0) (penup) (async-draw-y half (- half)) (exitonclick))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; testing functions
