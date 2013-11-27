@@ -55,6 +55,14 @@
                  (_do_ (cdr lst)))))
         (list '_do_ (cadr var--list))))
 
+(define (map proc items)
+  (define (mapp proc items mapped)
+    (if (null? items)
+        mapped
+        (mapp proc (cdr items)
+              (cons (proc (car items)) mapped))))
+  (reverse (mapp proc items nil)))
+
 (define (cadr x)
   (car (cdr x)))
 
