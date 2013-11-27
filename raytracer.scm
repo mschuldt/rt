@@ -1,6 +1,6 @@
 (define canv-size 300)
-(define dot-size 10)
-(define n-processors 6)
+(define dot-size 5)
+(define n-processors 4) ;; must be >= 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;function expansion
@@ -274,9 +274,13 @@
                            1))
                          (draw-x (+ x-left dot-size) x-right)))))
 
-(define (draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
+(define (normal-draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
 (define (fast-draw) (speed 0) (penup) (async-draw-y half (- half)) (exitonclick))
 
+(define (draw)
+  (if (= n-processors 1)
+      (normal-draw)
+      (fast-draw)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; testing functions
 
