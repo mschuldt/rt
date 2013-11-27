@@ -1,8 +1,31 @@
 (define canv-size 300)
-(define dot-size 5)
+(define dot-size 10)
 (define n-processors 4) ;; must be >= 1
 
+
+;; Runtimes with a Intel® Core™ i7-2600K CPU @ 3.40GHz × 8
+;;;
+;;with canv-size=300, dot-size=5
+;;processes   time
+;; 1:       (run time: 1 minutes 26.63226556777954 seconds)
+;; 2:       (run time: 47.16749954223633 seconds)
+;; 3:       (run time: 34.66832447052002 seconds)
+;; 4:       (run time: 32.659693002700806 seconds)
+;; 6:       (run time: 28.001237154006958 seconds)
+;; 8:       (run time: 25.460663080215454 seconds)
+;; 10:      (run time: 25.95758295059204 seconds)
+;; 150:     (run time: 25.428292989730835 seconds)
+;; 300:     (run time: 25.336638689041138 seconds)
+;; '600'    (run time: 25.634010791778564 seconds)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;with canv-size=300, dot-size=10
+;; 1: (run time: 20.87380290031433 seconds)
+;; 6: (run time: 6.624558687210083 seconds)
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;with canv-size=300, dot-size=2
+;; 1:  (run time: 9 minutes 11.588381052017212 seconds)
+;; 8:  (run time: 2 minutes 52.476383447647095 seconds)
 ;;function expansion
 (define-macro (expand-rcalls def ntimes)
   (append  (list (car def))
@@ -274,8 +297,11 @@
                            1))
                          (draw-x (+ x-left dot-size) x-right)))))
 
-(define (normal-draw) (speed 0) (penup) (draw-y half (- half)) (exitonclick))
-(define (fast-draw) (speed 0) (penup) (async-draw-y half (- half)) (exitonclick))
+;;NOTE: (exitonclick) commented out just for testing
+(define (normal-draw) (speed 0) (penup) (draw-y half (- half)) ;(exitonclick)
+  )
+(define (fast-draw) (speed 0) (penup) (async-draw-y half (- half)) ;(exitonclick)
+  )
 
 (define (draw)
   (if (= n-processors 1)
