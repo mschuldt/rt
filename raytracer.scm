@@ -1,6 +1,6 @@
 (define canv-size 300)
 (define dot-size 10)
-(define n-processors 4) ;; must be >= 1
+(define n-processors 8) ;; must be >= 1
 
 
 ;; Runtimes with a Intel® Core™ i7-2600K CPU @ 3.40GHz × 8
@@ -26,6 +26,11 @@
 ;;with canv-size=300, dot-size=2
 ;; 1:  (run time: 9 minutes 11.588381052017212 seconds)
 ;; 8:  (run time: 2 minutes 52.476383447647095 seconds)
+;;
+;;
+;;canv-size=500, dot-size=1
+;;8: (run time: 81 minutes 37.223453521728516 seconds)
+
 ;;function expansion
 (define-macro (expand-rcalls def ntimes)
   (append  (list (car def))
@@ -240,6 +245,8 @@
   (vector y-coor (list->vector ret)))
 
 (define (async-draw-y y-top y-bottom)
+  ;;this version calculates each line, then draws them
+  ;;it does not raytracing while the turtle works
   (define (spawn-workers y-coor num)
     (if (or (= num 0)
             (< y-coor y-bottom))
@@ -251,7 +258,48 @@
         (define workers (spawn-workers y-top n-processors))
         (map async-start workers)
         (map draw-points (map async-get workers))
+        (update)
+        (print ".")
         (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))))
+
+(define lines nil)
+(define completed-lines 0)
+(define (async-draw-y y-top y-bottom)
+  ;;this version saves all calculated colors in 'lines'
+  ;;then drawn them when all raytracing is finished
+  ;;; it improves time from 81min to 54min for 500/1
+  (define (spawn-workers y-coor num)
+    (if (or (= num 0)
+            (< y-coor y-bottom))
+        nil
+        (cons (async worker (list y-coor))
+              (spawn-workers (- y-coor dot-size) (- num 1)))))
+  (if (> y-top y-bottom)
+      (begin
+        (define workers (spawn-workers y-top n-processors))
+        (map async-start workers)
+        (map (lambda (x) (set! lines (cons (async-get x) lines)))
+             workers)
+        
+        (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+        (print (* (/ completed-lines canv-size) 100))
+        
+        (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))
+      (let ((start (time)))
+        (print "Drawing points...")
+        
+        (define (to-each proc items)
+          ;;tail recursively map a function - nothing returned
+          (define (iter proc items)
+            (if (null? items)
+                nil
+                (begin (proc (car items))
+                       (iter proc (cdr items)))))
+          (iter proc items))
+        (to-each draw-points lines)
+        (print (list 'drawing 'took (- (time) start) 'seconds)))
+      ))
+
 
 (define (draw-points colors)
   ;;COLORS is a vector with format: [y-coor colors]
@@ -268,7 +316,8 @@
                                     (vector->list (vector-ref colors index)))
                                    (draw-point (- index 1)
                                                (+ x-coor dot-size)))))))
-    (draw-point (- (vector-length colors) 1) (- half))))
+    (draw-point (- (vector-length colors) 1) (- half))
+    (update)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
