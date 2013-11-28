@@ -1,4 +1,4 @@
-(define canv-size 300)
+-(define canv-size 300)
 (define dot-size 5)
 (define n-processors 8) ;; must be >= 1
 
@@ -31,63 +31,6 @@
 ;;canv-size=500, dot-size=1
 ;;8: (run time: 81 minutes 37.223453521728516 seconds)
 
-;;function expansion
-(define-macro (expand-rcalls def ntimes)
-  (append  (list (car def))
-           (list (cadr def))
-           (expand-in (car (car (cdr def))) ;;name
-                      (cdr (car (cdr def))) ;;args
-                      (cdr (cdr def)) ;;body
-                      (cdr (cdr def)) ;;form
-                      ntimes)))
-
-(define-macro (expand-mu-rcalls name def ntimes)
-  (append '(mu)
-          (list (car (cdr def)))
-          (expand-in name  ;;name
-                     (car (cdr def)) ;;args
-                     (cdr (cdr def)) ;;body
-                     (cdr (cdr def)) ;;form
-                     ntimes)))
-
-(define (zip a b)
-  (if (or (null? a) (null? b))
-      nil
-      (cons (cons (car a) (car b)) (zip (cdr a) (cdr b)))))
-
-(define (expand-in name args body form ntimes)
-  (if (and (list? form)
-           (> ntimes 0))
-      (if (equal? (car form) name)
-          ;;expand
-          (append '(begin) (map (lambda (x)
-                                  (list 'set! (car x) (cdr x)))
-                                (zip args (cdr form)))
-                  (expand-in name args body body (- ntimes 1))) ;;or (,@body?
-
-          ;;else, attempt to expand body
-          (map (lambda (bod)
-                 (expand-in name args body bod ntimes))
-               form))
-      form))
-
-(expand-rcalls
- (define (fact n)
-   (if (= n 0)
-       1
-       (* n (fact (- n 1)))))
- 5)
-
-(define fact2
-  (expand-mu-rcalls
-   fact2
-   (mu (n)
-       (if (= n 0)
-           1
-           (* n (fact2 (- n 1)))))
-   5))
-;;end function expansion
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
@@ -344,6 +287,47 @@
     (update)
     ))
 
+
+
+
+;;; new draw-points with lines
+(define (draw-points colors)
+ ;;; Draws points with lines
+  ;;COLORS is a vector with format: [y-coor colors]
+  ;;Where 'y-coor' is the y-coordinate of the line
+  ;;     and 'colors' is a vector of rgb color values (reversed)
+  (define y-coor (vector-ref colors 0))
+  (define colors (vector-ref colors 1))
+  (define current-line 0)
+  (define current-color nil)
+  (define c nil)
+  (define forward-dist 0)
+  (penup)
+  (setpos (- half) y-coor)
+  (pendown)
+  (define draw-point (mu (index)
+                         (if (< index 0) nil
+                             (begin
+                               ;;as long as the color is the same as the current color,
+                               ;;increment foward-dist
+                               (set! c (vector->list (vector-ref colors index)))
+                               (if (equal? c current-color)
+                                   (set! forward-dist (+ 1 forward-dist))
+                                   (begin
+                                     ;;if the color has changed
+                                     ;;draw the previous line if any
+                                     ;;then start a new line
+                                     (if (> foward-dist 0)
+                                         (set-color current-color)
+                                         (fd foward-dist)
+                                         (set! forward-dist 0)) ;;?
+                                     ;;start new line
+                                     (set! current-color c)
+                                     (set! foward-dist 1)
+                                     (draw-point (- index 1))))))))
+  (draw-point (- (vector-length colors) 1))
+  (update))
+
 ;;; new draw-points with lines
 (define (draw-points colors)
 	;;; Draws points with lines
@@ -363,6 +347,9 @@
                                    (draw-point (- index 1))))))
     (draw-point (- (vector-length colors) 1))
     (update))
+
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
