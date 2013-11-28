@@ -230,9 +230,17 @@
   ;;return a list of all multiples of STEP in the range [FROM, TO], inclusive
   ;;(range 1 5 1) => (1 2 3 4 5)
   ;;(range 1 5 2) => (1 3 5)
-  (if (> from to)
-      nil
-      (cons from (range (+ from step) to step))))
+  (define (range-iter from to step accum)
+    (if (< to from)
+        accum
+        (range-iter from (- to step) step (cons to accum))))
+  (range-iter from
+              (if (= (modulo (- to from) step) 0)
+                  to
+                  (- to (modulo (- to from) step)))
+              step
+              nil))
+
 
 
 (define* (worker work-Q results-Q)
