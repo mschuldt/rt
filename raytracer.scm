@@ -1,5 +1,5 @@
 (define canv-size 300)
-(define dot-size 5)
+(define dot-size 10)
 (define n-processors 8) ;; must be >= 1
 
 
@@ -320,7 +320,8 @@
         
         (async-draw-y (- y-top (* dot-size n-processors))
                       y-bottom
-                      (map async-get workers)))))
+                      (map async-get workers)))
+      (map draw-points previous-lines)))
 
 
 (define (draw-points colors)
@@ -341,7 +342,6 @@
     (draw-point (- (vector-length colors) 1) (- half))
     (update)
     ))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
