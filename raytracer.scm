@@ -260,7 +260,7 @@
           (if (queue-empty? work-Q)
               (begin
                 (queue-put results-Q 'done)
-                nil)
+                0)
               (let ((y-coor (queue-get work-Q)))
                 (calc-line (- half) y-coor) 
                 (queue-put results-Q (vector y-coor (list->vector ret))) 
