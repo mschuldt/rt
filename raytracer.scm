@@ -247,60 +247,6 @@
     (sub-contractor (- half))
     (vector y-coor (list->vector ret))))
 
-(define-with-subst (async-draw-y y-top y-bottom)
-  ;;this version calculates each line, then draws them
-  ;;it does not raytrace while the turtle works
-  (begin (define (spawn-workers y-coor num)
-           (if (or (= num 0)
-                   (< y-coor y-bottom))
-               nil
-               (cons (async worker (list y-coor))
-                     (spawn-workers (- y-coor dot-size) (- num 1)))))
-         (if (> y-top y-bottom)
-             (begin
-               (define workers (spawn-workers y-top n-processors))
-               (map async-start workers)
-               (map draw-points (map async-get workers))
-               (async-draw-y (- y-top (* dot-size n-processors)) y-bottom)))))
-
-(define lines nil)
-(define completed-lines 0)
-(define-with-subst (async-draw-y y-top y-bottom)
-  ;;this version saves all calculated colors in 'lines'
-  ;;then drawn them when all raytracing is finished
-  ;;; it improves time from 81min to 54min for 500/1
-  (begin
-    (define (spawn-workers y-coor num)
-      (if (or (= num 0)
-              (< y-coor y-bottom))
-          nil
-          (cons (async worker (list y-coor))
-                (spawn-workers (- y-coor dot-size) (- num 1)))))
-    (if (> y-top y-bottom)
-        (begin
-          (define workers (spawn-workers y-top n-processors))
-          (map async-start workers)
-          (map (lambda (x) (set! lines (cons (async-get x) lines)))
-               workers)
-          
-          (set! completed-lines (+ completed-lines (* n-processors dot-size)))
-          (print (* (/ completed-lines canv-size) 100))
-          
-          (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))
-        (let ((start (time)))
-          (print "Drawing points...")
-          
-          (define (to-each proc items)
-            ;;tail recursively map a function - nothing returned
-            (define (iter proc items)
-              (if (null? items)
-                  nil
-                  (begin (proc (car items))
-                         (iter proc (cdr items)))))
-            (iter proc items))
-          (to-each draw-points lines)
-          (print (list 'drawing 'took (- (time) start) 'seconds))))))
-
 (define-with-subst (async-draw-y y-top y-bottom previous-lines)
   ;;this version starts processing the next batch of lines
   ;;as it draws the results from the previous batch
