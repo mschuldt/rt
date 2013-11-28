@@ -272,67 +272,10 @@
                         (map async-get workers)))
         (map draw-points previous-lines))))
 
-(define-with-subst (draw-points colors)
-  ;;COLORS is a vector with format: [y-coor colors]
-  ;;Where 'y-coor' is the y-coordinate of the line
-  ;;     and 'colors' is a vector of rgb color values (reversed)
-  (let ((y-coor (vector-ref colors 0))
-        (colors (vector-ref colors 1))
-        (draw-point (mu (index x-coor)
-                        (if (< index 0) nil
-                            (begin (set-dot
-                                    x-coor
-                                    y-coor
-                                    (vector->list (vector-ref colors index)))
-                                   (draw-point (- index 1)
-                                               (+ x-coor dot-size)))))))
-    (draw-point (- (vector-length colors) 1) (- half))
-    (update)
-    ))
 
 
-;;; new draw-points with lines
 (define-with-subst (draw-points colors)
- ;;; Draws points with lines
-  ;;COLORS is a vector with format: [y-coor colors]
-  ;;Where 'y-coor' is the y-coordinate of the line
-  ;;     and 'colors' is a vector of rgb color values (reversed)
-  (begin
-  (define y-coor (vector-ref colors 0))
-  (define colors (vector-ref colors 1))
-  (define current-line 0)
-  (define current-color nil)
-  (define c nil)
-  (define forward-dist 0)
-  (penup)
-  (setpos (- half) y-coor)
-  (pendown)
-  (define draw-point (mu (index)
-                         (if (< index 0) nil
-                             (begin
-                               ;;as long as the color is the same as the current color,
-                               ;;increment foward-dist
-                               (set! c (vector->list (vector-ref colors index)))
-                               (if (equal? c current-color)
-                                   (set! forward-dist (+ 1 forward-dist))
-                                   (begin
-                                     ;;if the color has changed
-                                     ;;draw the previous line if any
-                                     ;;then start a new line
-                                     (if (> foward-dist 0)
-                                         (set-color current-color)
-                                         (fd foward-dist)
-                                         (set! forward-dist 0)) ;;?
-                                     ;;start new line
-                                     (set! current-color c)
-                                     (set! foward-dist 1)
-                                     (draw-point (- index 1))))))))
-  (draw-point (- (vector-length colors) 1))
-  (update)))
-
-;;; new draw-points with lines
-(define-with-subst (draw-points colors)
-	;;; Draws points with lines
+  ;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
   ;;     and 'colors' is a vector of rgb color values (reversed)
