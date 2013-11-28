@@ -32,7 +32,8 @@
 ;;
 ;;
 ;; Substitutions are only expanded with macros `define*' and `mu*'
-;;
+
+
 (define substitutions
   (list '((cadr x) (car (cdr x)))
         '((caddr x) (car (cdr (cdr x))))
@@ -106,16 +107,19 @@
             form
             (subst-body subst)))))
 
+
 (define-macro (define* formals body)
-  (list 'define formals 
-	(make-substitutions substitutions body)))
+  (list 'define formals
+        (make-substitutions substitutions body)))
+        
 
 (define-macro (mu* formals body)
-  (list 'mu formals 
-	(make-substitutions substitutions body)))
+  (list 'mu formals
+        (make-substitutions substitutions body)))
 
 
 (print "loading and expanding...")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
