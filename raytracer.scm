@@ -31,7 +31,7 @@
 ;;          (min 255 (car (cdr (cdr "red")))))
 ;;
 ;;
-;; Substitutions are only expanded with macros `define-with-subst' and `mu-with-subst'
+;; Substitutions are only expanded with macros `define*' and `mu*'
 ;;
 (define substitutions
   (list '((cadr x) (car (cdr x)))
@@ -106,11 +106,11 @@
             form
             (subst-body subst)))))
 
-(define-macro (define-with-subst formals body)
+(define-macro (define* formals body)
   (list 'define formals 
 	(make-substitutions substitutions body)))
 
-(define-macro (mu-with-subst formals body)
+(define-macro (mu* formals body)
   (list 'mu formals 
 	(make-substitutions substitutions body)))
 
@@ -131,7 +131,7 @@
 
 (define half (/ canv-size 2))
 
-(define closest-intersection (mu-with-subst (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
+(define closest-intersection (mu* (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
                                  (get-closest-sphere 0 spheres)))
 
 (define (sum-lists a b) ; have to be equal size
@@ -139,7 +139,7 @@
 
 
 (define get-closest-sphere
-  (mu-with-subst (v spheres-list)
+  (mu* (v spheres-list)
       (if (null? spheres-list)
           v
           (begin
@@ -167,7 +167,7 @@
             (get-closest-sphere v (cdr spheres-list))))))
 
 (define get-illumination
-  (mu-with-subst (lights-list illumination)
+  (mu* (lights-list illumination)
       (if (null? lights-list)
           illumination
           (begin
@@ -190,7 +190,7 @@
 
 
 (define trace-ray-iter
-  (mu-with-subst (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
+  (mu* (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
                  (begin
                    (define min-dist canv-size)
                    (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
@@ -226,7 +226,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(define-with-subst (worker y-coor)
+(define* (worker y-coor)
   (begin
     (define ret nil)
     (define sub-contractor
@@ -247,7 +247,8 @@
     (sub-contractor (- half))
     (vector y-coor (list->vector ret))))
 
-(define-with-subst (async-draw-y y-top y-bottom previous-lines)
+
+(define* (async-draw-y y-top y-bottom previous-lines)
   ;;this version starts processing the next batch of lines
   ;;as it draws the results from the previous batch
   ;;=> This is faster then normal but still slower then doing  all calculations first
@@ -274,7 +275,7 @@
 
 
 
-(define-with-subst (draw-points colors)
+(define* (draw-points colors)
   ;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
@@ -298,7 +299,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-with-subst (draw-y y-top y-bottom)
+(define* (draw-y y-top y-bottom)
   (if (> y-top y-bottom)
       (begin
         (setpos (- half) y-top)
@@ -307,7 +308,7 @@
         (penup)
         (draw-y (- y-top dot-size) y-bottom))))
 
-(define draw-x (mu-with-subst (x-left x-right)
+(define draw-x (mu* (x-left x-right)
                               (if (< x-left x-right)
                                   (begin
                                     (define new-color (trace-ray
