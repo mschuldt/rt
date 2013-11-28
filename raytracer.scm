@@ -1,5 +1,5 @@
 (define canv-size 300)
-(define dot-size 10)
+(define dot-size 5)
 (define n-processors 8) ;; must be >= 1
 
 
@@ -104,6 +104,8 @@
                                                (in-255 (car colors))
                                                (in-255 (cadr colors))
                                                (in-255 (caddr colors))))
+
+
 
 (define (cadr x)
   (car (cdr x)))
@@ -246,7 +248,7 @@
 
 (define (async-draw-y y-top y-bottom)
   ;;this version calculates each line, then draws them
-  ;;it does not raytracing while the turtle works
+  ;;it does not raytrace while the turtle works
   (define (spawn-workers y-coor num)
     (if (or (= num 0)
             (< y-coor y-bottom))
@@ -258,8 +260,6 @@
         (define workers (spawn-workers y-top n-processors))
         (map async-start workers)
         (map draw-points (map async-get workers))
-        (update)
-        (print ".")
         (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))))
 
 (define lines nil)
@@ -297,8 +297,30 @@
                        (iter proc (cdr items)))))
           (iter proc items))
         (to-each draw-points lines)
-        (print (list 'drawing 'took (- (time) start) 'seconds)))
-      ))
+        (print (list 'drawing 'took (- (time) start) 'seconds)))))
+
+(define (async-draw-y y-top y-bottom previous-lines)
+  ;;this version starts processing the next batch of lines
+  ;;as it draws the results from the previous batch
+  ;;=> This is faster then normal but still slower then doing  all calculations first
+  (define (spawn-workers y-coor num)
+    (if (or (= num 0)
+            (< y-coor y-bottom))
+        nil
+        (cons (async worker (list y-coor))
+              (spawn-workers (- y-coor dot-size) (- num 1)))))
+  (if (> y-top y-bottom)
+      (begin
+        (define workers (spawn-workers y-top n-processors))
+        (map async-start workers)
+        (map draw-points previous-lines)
+        
+        (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+        (print (* (/ completed-lines canv-size) 100))
+        
+        (async-draw-y (- y-top (* dot-size n-processors))
+                      y-bottom
+                      (map async-get workers)))))
 
 
 (define (draw-points colors)
@@ -317,7 +339,9 @@
                                    (draw-point (- index 1)
                                                (+ x-coor dot-size)))))))
     (draw-point (- (vector-length colors) 1) (- half))
-    (update)))
+    (update)
+    ))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -349,8 +373,8 @@
 ;;NOTE: (exitonclick) commented out just for testing
 (define (normal-draw) (speed 0) (penup) (draw-y half (- half)) ;(exitonclick)
   )
-(define (fast-draw) (speed 0) (penup) (async-draw-y half (- half)) ;(exitonclick)
-  )
+(define (fast-draw) (speed 0) (penup) (async-draw-y half (- half) nil) ;(exitonclick)
+  ) 
 
 (define (draw)
   (if (= n-processors 1)
