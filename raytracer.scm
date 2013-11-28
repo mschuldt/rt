@@ -1,5 +1,5 @@
 (define canv-size 300)
-(define dot-size 5)
+(define dot-size 10)
 (define n-processors 8) ;; must be >= 1
 
 
@@ -23,12 +23,12 @@
 ;;                            (in-255 (caddr colors))))
 ;;
 ;; the code: 
-;;   (set-color "red")
+;;   (set-color red)
 ;;
 ;; will be expanded as:
-;;   (color (min 255 (car "red"))
-;;          (min 255 (car (cdr "red")))
-;;          (min 255 (car (cdr (cdr "red")))))
+;;   (color (min 255 (car red))
+;;          (min 255 (car (cdr red)))
+;;          (min 255 (car (cdr (cdr red)))))
 ;;
 ;;
 ;; Substitutions are only expanded with macros `define*' and `mu*'
@@ -191,46 +191,57 @@
 
 (define trace-ray-iter
   (mu* (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
-                 (begin
-                   (define min-dist canv-size)
-                   (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
-                   (if (number? closest-sphere) ; if no intersection
-                       prev-color
-                       (begin
-                         (define intersection (a-minus-bk source direction (- min-dist)))
-                         (define normal (a-minus-bk intersection (car closest-sphere) 1))
-                         (define closest-sphere (cdr closest-sphere)) ;; get to color
-                         (define n (dot-product normal normal))
-                         (define illumination (get-illumination lights ambient-light))
-                         (define new-color (map (lambda (channel) (* channel 2.833 illumination prev-ref)) (car closest-sphere)))
-                         (define curr-ref (/ (caddr closest-sphere) 9)) ;; get reflection
-                         (if (> depth 0)
-                             (begin
-                               (define new-color (map (lambda (channel) (* channel (- 1 curr-ref))) new-color))
-                               (define new-color (sum-lists new-color prev-color))
-                               (trace-ray-iter
-                                intersection
-                                (a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
-                                (/ 1 canv-size)
-                                canv-size
-                                (- depth 1)
-                                new-color
-                                (* curr-ref prev-ref)))
-                             (sum-lists new-color prev-color)))))))
+       (begin
+         (define min-dist canv-size)
+         (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
+         (if (number? closest-sphere) ; if no intersection
+             prev-color
+             (begin
+               (define intersection (a-minus-bk source direction (- min-dist)))
+               (define normal (a-minus-bk intersection (car closest-sphere) 1))
+               (define closest-sphere (cdr closest-sphere)) ;; get to color
+               (define n (dot-product normal normal))
+               (define illumination (get-illumination lights ambient-light))
+               (define new-color (map (lambda (channel) (* channel 2.833 illumination prev-ref)) (car closest-sphere)))
+               (define curr-ref (/ (caddr closest-sphere) 9)) ;; get reflection
+               (if (> depth 0)
+                   (begin
+                     (define new-color (map (lambda (channel) (* channel (- 1 curr-ref))) new-color))
+                     (define new-color (sum-lists new-color prev-color))
+                     (trace-ray-iter
+                      intersection
+                      (a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
+                      (/ 1 canv-size)
+                      canv-size
+                      (- depth 1)
+                      new-color
+                      (* curr-ref prev-ref)))
+                   (sum-lists new-color prev-color)))))))
 
 (define (trace-ray source direction t_min t_max depth)
-	(trace-ray-iter source direction t_min t_max depth (list 0 0 0) 1))
+  (trace-ray-iter source direction t_min t_max depth (list 0 0 0) 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;multiprocessing
+
+(define (range from to step)
+  ;;return a list of all multiples of STEP in the range [FROM, TO], inclusive
+  ;;(range 1 5 1) => (1 2 3 4 5)
+  ;;(range 1 5 2) => (1 3 5)
+  (if (> from to)
+      nil
+      (cons from (range (+ from step) to step))))
 
 
-(define* (worker y-coor)
+
+(define* (worker work-Q results-Q)
   (begin
     (define ret nil)
-    (define sub-contractor
-      (mu (x-left)
+
+    (define calc-line
+      (mu (x-left y-coor)
           (if (< x-left half)
               (begin
                 (set! ret (cons (list->vector (trace-ray
@@ -242,87 +253,74 @@
                                                2 ;reflection depth
                                                )) 
                                 ret))
-                (sub-contractor (+ x-left dot-size))))))
-    
-    (sub-contractor (- half))
-    (vector y-coor (list->vector ret))))
+                (calc-line (+ x-left dot-size) y-coor)))))
 
+    (define worker-iter
+      (mu ()
+          (if (queue-empty? work-Q)
+              (begin
+                (queue-put results-Q 'done)
+                nil)
+              (let ((y-coor (queue-get work-Q)))
+                (calc-line (- half) y-coor) 
+                (queue-put results-Q (vector y-coor (list->vector ret))) 
+                (set! ret nil)
+                (worker-iter)))))
+    
+    (worker-iter)))
 
 (define completed-lines 0)
-
 (define* (async-draw-y y-top y-bottom previous-lines)
   ;;this version starts processing the next batch of lines
   ;;as it draws the results from the previous batch
   ;;=> This is faster then normal but still slower then doing  all calculations first
   (begin
-    (define (spawn-workers y-coor num)
-      (if (or (= num 0)
-              (< y-coor y-bottom))
-          nil
-          (cons (async worker (list y-coor))
-                (spawn-workers (- y-coor dot-size) (- num 1)))))
-    (if (> y-top y-bottom)
-        (begin
-          (define workers (spawn-workers y-top n-processors))
-          (map async-start workers)
-          (map draw-points previous-lines)
-          
-          (set! completed-lines (+ completed-lines (* n-processors dot-size)))
-          (print (* (/ completed-lines canv-size) 100))
-          
-          (async-draw-y (- y-top (* dot-size n-processors))
-                        y-bottom
-                        (map async-get workers)))
-        (map draw-points previous-lines))))
-
-(define* (worker y-coor)
-  (begin
-    (define ret nil)
-    (define sub-contractor
-      (mu (x-left)
-          (if (< x-left half)
-              (begin
-                (set! ret (cons (list->vector (trace-ray
-                                               camera
-                                               (list (/ x-left canv-size)
-                                                     (/ y-coor canv-size) 1)
-                                               1
-                                               canv-size
-                                               2 ;reflection depth
-                                               )) 
-                                ret))
-                (sub-contractor (+ x-left dot-size))))))
+    (define results-Q (queue));; used to get color vectors from the workers
+    (define work-Q (queue))  ;; used to send y-coordinates to the workers
+    (define finished 0)
     
-    (sub-contractor (- half))
-    (vector y-coor (list->vector ret))))
-
-
-(define* (async-draw-y y-top y-bottom previous-lines)
-  ;;this version starts processing the next batch of lines
-  ;;as it draws the results from the previous batch
-  ;;=> This is faster then normal but still slower then doing  all calculations first
-  (begin
-    (define (spawn-workers y-coor num)
-      (if (or (= num 0)
-              (< y-coor y-bottom))
+    (define (spawn-workers num)
+      (if (= num 0)
           nil
-          (cons (async worker (list y-coor))
-                (spawn-workers (- y-coor dot-size) (- num 1)))))
-    (if (> y-top y-bottom)
-        (begin
-          (define workers (spawn-workers y-top n-processors))
-          (map async-start workers)
-          (map draw-points previous-lines)
-          
-          (set! completed-lines (+ completed-lines (* n-processors dot-size)))
-          (print (* (/ completed-lines canv-size) 100))
-          
-          (async-draw-y (- y-top (* dot-size n-processors))
-                        y-bottom
-                        (map async-get workers)))
-        (map draw-points previous-lines))))
+          (cons (async worker (list work-Q results-Q)) ;; y-bottom ???
+                (spawn-workers (- num 1)))))
 
+    (define (init-work-Q top bottom)
+      ;;populate the work-Q with the line numbers to be calculated
+      (if (< top bottom)
+          nil
+          (begin
+            (queue-put work-Q top)
+            (init-work-Q (- top dot-size) bottom))))
+    (init-work-Q y-top y-bottom)
+    
+    (define workers (spawn-workers n-processors))
+    (map async-start workers)
 
+    (define (get-draw-repeat)
+      (if (= finished n-processors)
+          ;;each time a process is finished it puts the symbol 'done in results-Q
+          ;;here we the number of 'done' symbols to know when to quite
+          ;;This seems clumsy but I'm not sure how this sort of thing is normally done
+          nil
+          (begin
+            (define results (queue-get results-Q))
+            
+            (if (equal? results 'done)
+                (begin
+                  (set! finished (+ finished 1))
+                  (get-draw-repeat))
+
+                (begin
+                  (draw-points results)
+                  
+                  (set! completed-lines (+ completed-lines dot-size))
+                  (print (* (/ completed-lines canv-size) 100))
+
+                  (get-draw-repeat))))))
+    
+    (get-draw-repeat)))
+    
 
 (define* (draw-points colors)
   ;; Draws points with lines
