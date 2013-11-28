@@ -500,8 +500,11 @@ class Async:
         self.process.start()
 #TODO: how to force stop? pause?        
     def get(self):
-        self.process.join()
+        self.process.join() #necessary?
         return self.queue.get()
+    def join(self):
+        self.process.join()
+        return okay
         
     def __repr__ (self):
         return "Async({0}, {1}, {2})".format(self.func, self.args, self.env)
@@ -509,7 +512,6 @@ class Async:
     def __str__(self):
         return "(async {0} {1}) ".format(self.func, self.args)
         
-
 @primitive("process?")
 def async_process_p (thing):
     return isinstance(thing, Async)
@@ -529,8 +531,56 @@ def async_get(process):
     if async_process_p(process):
         return process.get()
     SchemeError("Invalid async process: {0}".format(process))
-    
 
+@primitive("async-join")
+def async_get(process):
+    if async_process_p(process):
+        return process.join()
+    SchemeError("Invalid async process: {0}".format(process))
+        
+
+
+class Scheme_queue:
+    def __init__(self):
+        self.Q = Queue() #turns out Queue is acutally a function
+    def get(self):
+        return self.Q.get()
+    def put(self, thing):
+        self.Q.put(thing)
+        return okay
+    def empty(self):
+        return self.Q.empty()
+    def __repr__ (self):
+        return "Scheme_queue()"
+    def __str__(self):
+        return "(queue)"
+        
+@primitive("queue")
+def scheme_queue():
+    return Scheme_queue()
+
+@primitive("queue?")
+def scheme_queue_p(thing):
+    return isinstance(thing, Scheme_queue)
+
+@primitive("queue-put")
+def scheme_queue_put(queue, thing): #TODO: check if thing is valid (non-mutable)
+    if scheme_queue_p(queue):
+        return queue.put(thing)
+    SchemeError("Invalid queue: {0}".format(queue))
+        
+
+@primitive("queue-get")
+def scheme_queue_get(queue):
+    if scheme_queue_p(queue):
+        return queue.get()
+    SchemeError("Invalid queue: {0}".format(queue))
+
+@primitive("queue-empty?")
+def scheme_queue_empty(queue):
+    if scheme_queue_p(queue):
+        return queue.empty()
+        SchemeError("Invalid queue: {0}".format(queue))    
 
 ################################################################
 # Uncomment the following line to apply tail call optimization #
