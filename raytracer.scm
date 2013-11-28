@@ -235,7 +235,6 @@
       (cons from (range (+ from step) to step))))
 
 
-
 (define* (worker work-Q results-Q)
   (begin
     (define ret nil)
@@ -243,17 +242,16 @@
     (define calc-line
       (mu (x-left y-coor)
           (if (< x-left half)
-              (begin
-                (set! ret (cons (list->vector (trace-ray
-                                               camera
-                                               (list (/ x-left canv-size)
-                                                     (/ y-coor canv-size) 1)
-                                               1
-                                               canv-size
-                                               2 ;reflection depth
-                                               )) 
-                                ret))
-                (calc-line (+ x-left dot-size) y-coor)))))
+              (cons (list->vector (trace-ray
+                                         camera
+                                         (list (/ x-left canv-size)
+                                               (/ y-coor canv-size) 1)
+                                         1
+                                         canv-size
+                                         2 ;reflection depth
+                                         ))
+                    (calc-line (+ x-left dot-size) y-coor))
+              nil)))
 
     (define worker-iter
       (mu ()
@@ -262,9 +260,7 @@
                 (queue-put results-Q 'done)
                 0)
               (let ((y-coor (queue-get work-Q)))
-                (calc-line (- half) y-coor) 
-                (queue-put results-Q (vector y-coor (list->vector ret))) 
-                (set! ret nil)
+                (queue-put results-Q (vector y-coor (list->vector (calc-line (- half) y-coor)))) 
                 (worker-iter)))))
     
     (worker-iter)))
