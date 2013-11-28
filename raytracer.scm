@@ -244,28 +244,29 @@
 
 (define* (worker work-Q results-Q)
   (begin
-    (define calc-line
-      (mu (x-left y-coor)
-          (if (< x-left half)
-              (cons (list->vector (trace-ray
-                                         camera
-                                         (list (/ x-left canv-size)
-                                               (/ y-coor canv-size) 1)
-                                         1
-                                         canv-size
-                                         2 ;reflection depth
-                                         ))
-                    (calc-line (+ x-left dot-size) y-coor))
-              nil)))
+    (define (calc-line x-left y-coor results)
+      (if (< x-left half)
+          (calc-line (+ x-left dot-size)
+                     y-coor
+                     (cons (list->vector (trace-ray
+                                          camera
+                                          (list (/ x-left canv-size)
+                                                (/ y-coor canv-size) 1)
+                                          1
+                                          canv-size
+                                          2 ;reflection depth
+                                          ))
+                           results))
+          (list->vector results)))
 
     (define (worker-iter)
-          (if (queue-empty? work-Q)
-              (begin
-                (queue-put results-Q 'done)
-                0)
-              (let ((y-coor (queue-get work-Q)))
-                (queue-put results-Q (vector y-coor (list->vector (calc-line (- half) y-coor)))) 
-                (worker-iter))))
+      (if (queue-empty? work-Q)
+          (begin
+            (queue-put results-Q 'done)
+            0)
+          (let ((y-coor (queue-get work-Q)))
+            (queue-put results-Q (vector y-coor (calc-line (- half) y-coor nil))) 
+            (worker-iter))))
     
     (worker-iter)))
 
