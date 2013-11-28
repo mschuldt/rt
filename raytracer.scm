@@ -248,6 +248,55 @@
     (vector y-coor (list->vector ret))))
 
 
+(define completed-lines 0)
+
+(define* (async-draw-y y-top y-bottom previous-lines)
+  ;;this version starts processing the next batch of lines
+  ;;as it draws the results from the previous batch
+  ;;=> This is faster then normal but still slower then doing  all calculations first
+  (begin
+    (define (spawn-workers y-coor num)
+      (if (or (= num 0)
+              (< y-coor y-bottom))
+          nil
+          (cons (async worker (list y-coor))
+                (spawn-workers (- y-coor dot-size) (- num 1)))))
+    (if (> y-top y-bottom)
+        (begin
+          (define workers (spawn-workers y-top n-processors))
+          (map async-start workers)
+          (map draw-points previous-lines)
+          
+          (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+          (print (* (/ completed-lines canv-size) 100))
+          
+          (async-draw-y (- y-top (* dot-size n-processors))
+                        y-bottom
+                        (map async-get workers)))
+        (map draw-points previous-lines))))
+
+(define* (worker y-coor)
+  (begin
+    (define ret nil)
+    (define sub-contractor
+      (mu (x-left)
+          (if (< x-left half)
+              (begin
+                (set! ret (cons (list->vector (trace-ray
+                                               camera
+                                               (list (/ x-left canv-size)
+                                                     (/ y-coor canv-size) 1)
+                                               1
+                                               canv-size
+                                               2 ;reflection depth
+                                               )) 
+                                ret))
+                (sub-contractor (+ x-left dot-size))))))
+    
+    (sub-contractor (- half))
+    (vector y-coor (list->vector ret))))
+
+
 (define* (async-draw-y y-top y-bottom previous-lines)
   ;;this version starts processing the next batch of lines
   ;;as it draws the results from the previous batch
