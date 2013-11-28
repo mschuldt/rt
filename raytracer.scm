@@ -1,7 +1,36 @@
 (define canv-size 300)
-(define dot-size 1)
+(define dot-size 10)
+(define n-processors 8) ;; must be >= 1
 
+
+;; Runtimes with a Intel® Core™ i7-2600K CPU @ 3.40GHz × 8
+;;;
+;;with canv-size=300, dot-size=5
+;;processes   time
+;; 1:       (run time: 1 minutes 26.63226556777954 seconds)
+;; 2:       (run time: 47.16749954223633 seconds)
+;; 3:       (run time: 34.66832447052002 seconds)
+;; 4:       (run time: 32.659693002700806 seconds)
+;; 6:       (run time: 28.001237154006958 seconds)
+;; 8:       (run time: 25.460663080215454 seconds)
+;; 10:      (run time: 25.95758295059204 seconds)
+;; 150:     (run time: 25.428292989730835 seconds)
+;; 300:     (run time: 25.336638689041138 seconds)
+;; '600'    (run time: 25.634010791778564 seconds)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;with canv-size=300, dot-size=10
+;; 1: (run time: 20.87380290031433 seconds)
+;; 6: (run time: 6.624558687210083 seconds)
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;with canv-size=300, dot-size=2
+;; 1:  (run time: 9 minutes 11.588381052017212 seconds)
+;; 8:  (run time: 2 minutes 52.476383447647095 seconds)
+;;
+;;
+;;canv-size=500, dot-size=1
+;;8: (run time: 81 minutes 37.223453521728516 seconds)
+
 ;;function expansion
 (define-macro (expand-rcalls def ntimes)
   (append  (list (car def))
@@ -21,7 +50,6 @@
                      (cdr (cdr def)) ;;form
                      ntimes)))
 
-
 (define (zip a b)
   (if (or (null? a) (null? b))
       nil
@@ -29,19 +57,19 @@
 
 (define (expand-in name args body form ntimes)
   (if (and (list? form)
-	   (> ntimes 0))
+           (> ntimes 0))
       (if (equal? (car form) name)
-	  ;;expand
-	  (append '(begin) (map (lambda (x)
+          ;;expand
+          (append '(begin) (map (lambda (x)
                                   (list 'set! (car x) (cdr x)))
-				(zip args (cdr form)))
-		  (expand-in name args body body (- ntimes 1))) ;;or (,@body?
-	  ;;else, attempt to expand body
-	  (map (lambda (bod)
+                                (zip args (cdr form)))
+                  (expand-in name args body body (- ntimes 1))) ;;or (,@body?
+
+          ;;else, attempt to expand body
+          (map (lambda (bod)
                  (expand-in name args body bod ntimes))
                form))
       form))
-
 
 (expand-rcalls
  (define (fact n)
@@ -60,7 +88,6 @@
    5))
 ;;end function expansion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
@@ -94,24 +121,24 @@
       (cons (proc (car items))
             (map proc (cdr items)))))
 (define (sum-lists a b) ; have to be equal size
-	(if (null? a) nil (cons (+ (car a) (car b)) (sum-lists (cdr a) (cdr b)))))
+  (if (null? a) nil (cons (+ (car a) (car b)) (sum-lists (cdr a) (cdr b)))))
 
 (define (square x) (* x x))
 
 (define (dot-product a b) ;for some reason works faster than tail recursive implementation
-	(+
-		(* (car a) (car b))
-		(* (cadr a) (cadr b))
-		(* (caddr a) (caddr b))))
+  (+
+   (* (car a) (car b))
+   (* (cadr a) (cadr b))
+   (* (caddr a) (caddr b))))
 
 (define (a-minus-bk a b k)
-	(list
-		(- (car a) (* (car b) k))
-		(- (cadr a) (* (cadr b) k))
-		(- (caddr a) (* (caddr b) k))))
+  (list
+   (- (car a) (* (car b) k))
+   (- (cadr a) (* (cadr b) k))
+   (- (caddr a) (* (caddr b) k))))
 
 (define closest-intersection (mu (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
-	(get-closest-sphere 0 spheres)))
+                                 (get-closest-sphere 0 spheres)))
 
 (define get-closest-sphere
   (mu (v spheres-list)
@@ -195,6 +222,114 @@
 	(trace-ray-iter source direction t_min t_max depth (list 0 0 0) 1))
 
 (define half (/ canv-size 2))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(define (worker y-coor) 
+  (define ret nil)
+  (define sub-contractor
+    (mu (x-left)
+        (if (< x-left half)
+            (begin
+              (set! ret (cons (list->vector (trace-ray
+                                             camera
+                                             (list (/ x-left canv-size)
+                                                   (/ y-coor canv-size) 1)
+                                             1
+                                             canv-size
+                                             2 ;reflection depth
+                                            )) 
+                              ret))
+              (sub-contractor (+ x-left dot-size))))))
+  
+  (sub-contractor (- half))
+  (vector y-coor (list->vector ret)))
+
+(define (async-draw-y y-top y-bottom)
+  ;;this version calculates each line, then draws them
+  ;;it does not raytracing while the turtle works
+  (define (spawn-workers y-coor num)
+    (if (or (= num 0)
+            (< y-coor y-bottom))
+        nil
+        (cons (async worker (list y-coor))
+              (spawn-workers (- y-coor dot-size) (- num 1)))))
+  (if (> y-top y-bottom)
+      (begin
+        (define workers (spawn-workers y-top n-processors))
+        (map async-start workers)
+        (map draw-points (map async-get workers))
+        (update)
+        (print ".")
+        (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))))
+
+(define lines nil)
+(define completed-lines 0)
+(define (async-draw-y y-top y-bottom)
+  ;;this version saves all calculated colors in 'lines'
+  ;;then drawn them when all raytracing is finished
+  ;;; it improves time from 81min to 54min for 500/1
+  (define (spawn-workers y-coor num)
+    (if (or (= num 0)
+            (< y-coor y-bottom))
+        nil
+        (cons (async worker (list y-coor))
+              (spawn-workers (- y-coor dot-size) (- num 1)))))
+  (if (> y-top y-bottom)
+      (begin
+        (define workers (spawn-workers y-top n-processors))
+        (map async-start workers)
+        (map (lambda (x) (set! lines (cons (async-get x) lines)))
+             workers)
+        
+        (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+        (print (* (/ completed-lines canv-size) 100))
+        
+        (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))
+      (let ((start (time)))
+        (print "Drawing points...")
+        
+        (define (to-each proc items)
+          ;;tail recursively map a function - nothing returned
+          (define (iter proc items)
+            (if (null? items)
+                nil
+                (begin (proc (car items))
+                       (iter proc (cdr items)))))
+          (iter proc items))
+        (to-each draw-points lines)
+        (print (list 'drawing 'took (- (time) start) 'seconds)))
+      ))
+
+
+(define (draw-points colors)
+  ;;COLORS is a vector with format: [y-coor colors]
+  ;;Where 'y-coor' is the y-coordinate of the line
+  ;;     and 'colors' is a vector of rgb color values (reversed)
+  		(define y-coor (vector-ref colors 0))
+        (define colors (vector-ref colors 1))
+        (define length nil)
+        (penup)
+        (setpos (- half) y-coor)
+        (pendown)
+        (define draw-point (mu (index)
+                        (if (< index 0) nil
+                            (begin (set-color
+                                    (vector->list (vector-ref colors index)))
+                            		(fd dot-size)
+                                   (draw-point (- index 1))))))
+    (draw-point (- (vector-length colors) 1))
+    (update))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (draw-y y-top y-bottom)
 	(if (> y-top y-bottom)
 		(begin
@@ -218,9 +353,16 @@
                          (fd dot-size)
                          (draw-x (+ x-left dot-size) x-right)))))
 
-(define (draw) (speed 0) (penup) (pensize dot-size) (setheading 90) (draw-y half (- half)) (exitonclick))
+;;NOTE: (exitonclick) commented out just for testing
+(define (normal-draw) (speed 0) (penup) (pensize dot-size) (draw-y half (- half)) ;(exitonclick)
+  )
+(define (fast-draw) (speed 0) (penup) (pensize dot-size) (setheading 90) (async-draw-y half (- half)) ;(exitonclick)
+  )
 
-
+(define (draw)
+  (if (= n-processors 1)
+      (normal-draw)
+      (fast-draw)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; testing functions
 
@@ -234,7 +376,3 @@
 
 (define (time-draw)
   (time-eval (draw)))
-
-
-
-

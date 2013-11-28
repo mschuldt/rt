@@ -60,13 +60,6 @@
 ;;NOTE: now that we have `okay?' we can get rid of this macro entirely
 ;;      but why not just leave it as an additional test
 (define-macro (assert-equal form expect)
-  "modifies assert test so that it can detect 'okay', then calls `assert-equal2'"
-  (if (equal? expect 'okay)
-      (begin (set! form (list 'okay? form))
-             (set! expect 'True)))
-  (list 'assert-equal2 form expect (list 'quote form)))
-
-(define-macro (assert-equal form expect)
   (if (equal? expect 'okay)
       (list 'assert-equal2
             (list 'okay? form)
@@ -108,11 +101,12 @@
 
 (define (range num)
   "range from 0 to NUM"
-  (define (make-range num)
+  (define (make-range num range)
     (if (= num -1)
-        nil
-        (cons num (make-range (- num 1)))))
-  (reverse (make-range (- num 1))))
+        range
+        (make-range (- num 1) (cons num range))))
+  (make-range (- num 1) nil))
+
 
 (assert-equal (range 5)
               '(0 1 2 3 4))
@@ -461,6 +455,90 @@
       6))
  57)
 
+;;; tests for multiprocesssing =========================================
+
+;;;calculate the sum of the 8th powers of numbers from 0 to 40
+;;; => 25959490005332
+
+(define (range from to)
+  "integer range [FROM, TO)"
+  (set! from (- from 1))
+  (define (make-range num range)
+    (if (= num from)
+        range
+        (make-range (- num 1) (cons num range))))
+  (make-range (- to 1) nil))
+
+(define (normal) ;;normal single threaded
+  (define x (map (lambda (x) (* x x x x x x x x)) (range 0 40)))
+  (define sum 0)
+  (for n in x :
+       (set! sum (+ sum n)))
+  sum)
+
+
+(define (4-processes) ;; use 4 threads
+  (define (worker start end)
+    (define x (map (lambda (x) (* x x x x x x x x)) (range start end)))
+    (define sum 0)
+    (for n in x :
+         (set! sum (+ sum n)))
+    sum)
+
+  (define processes (list (async worker (list 0 10))
+                          (async worker (list 10 20))
+                          (async worker (list 20 30))
+                          (async worker (list 30 40))))
+
+  (map async-start processes)
+  
+  (define total 0)
+  (for n in (map async-get processes) :
+       (set! total (+ total n)))
+  
+  total)
+
+(assert-equal (normal) 25959490005332)
+(assert-equal (normal) (4-processes))
+
+;;;vector tests
+
+
+(assert-equal (to-string (vector 1  23 'a))
+              "[1 23 a]")
+
+(define x (vector 1 'a "h"))
+(assert-equal (vector? x)
+              'True)
+(assert-equal (to-string (vector))
+              "[]")
+(assert-equal (vector-length x)
+              3)
+
+(assert-equal (vector-length (vector))
+              0)
+
+(define lst (vector->list x))
+(assert-equal lst
+              (list 1 'a "h"))
+(assert-equal (length lst)
+              3)
+
+(assert-equal (vector-ref x 0)
+              1)
+(assert-equal (vector-ref x 1)
+              'a)
+(assert-equal (vector-ref x 2)
+              '"h")
+(assert-equal (car (cdr lst))
+              (vector-ref x 1))
+
+(assert-equal (equal? x (list->vector (vector->list x)))
+              'True)
+
+(assert-equal (equal? lst (vector->list (list->vector lst)))
+              'True)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Move the following (exit) line to run additional tests. ;;;
@@ -721,10 +799,14 @@ okay)
  '(5 1 2 3 4))
 
 (define (map proc items)
-  (if (null? items)
-      nil
-      (cons (proc (car items))
-            (map proc (cdr items)))))
+  (define (mapp proc items mapped)
+    (if (null? items)
+        mapped
+        (mapp proc (cdr items)
+              (cons (proc (car items)) mapped))))
+  (reverse (mapp proc items nil)))
+  
+
 (assert-equal (map abs (list -10 2.5 -11.6 17))
  '(10 2.5 11.6 17))
 

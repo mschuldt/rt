@@ -553,6 +553,53 @@ def scheme_type_of(expr):
         return 'okay'
     return type(expr)
 
+
+class Vector(tuple):
+    def __str__(self):
+        return "[" + " ".join(map(str, self)) + "]"
+    def __repr__(self):
+        if not self: return "scheme_vector()"
+        if len(self) == 1: return "scheme_vector({0})".format(str(self[0]))
+        return "scheme_vector(" + str(self[0]) +", " + ", ".join(map(str, self[1:])) + ")" #FIX: this does not work for strings: scheme_vector("hi") => scheme_vector(hi)
+
+#TODO: type checking for all vector primitives
+@primitive("vector")
+def scheme_vector(*things):
+    return Vector(things)
+
+@primitive("vector?")
+def scheme_vector_p(form):
+    return isinstance(form, Vector)
+
+@primitive("vector-ref")
+def scheme_vector_ref(vec, pos):
+    return vec[pos]
+
+@primitive("make-vector")
+def scheme_make_vector(num, init = nil):
+    return Vector(init for _ in range(num))
+    
+@primitive("list->vector")
+def scheme_list_to_vector(form):
+    lst = []
+    while form is not nil:
+        lst.append(form.first)
+        form = form.second
+    return Vector(lst)
+    
+@primitive("vector->list")
+def scheme_vector_to_list(vec):
+    vec = vec[::-1]
+    new = Pair(vec[0], nil)
+    for elem in vec[1:]:
+        new = Pair(elem, new)
+    return new
+
+@primitive("vector-length")
+def scheme_vector_length(form):
+    return len(form)
+    
+    
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"
@@ -570,4 +617,3 @@ def scheme_python_apply(func, args):
     if callable(func):
         return func(*args)
     SchemeError("unknown identifier: " + str(func))
-
