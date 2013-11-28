@@ -1,4 +1,4 @@
--(define canv-size 300)
+(define canv-size 300)
 (define dot-size 5)
 (define n-processors 8) ;; must be >= 1
 
@@ -32,6 +32,121 @@
 ;;8: (run time: 81 minutes 37.223453521728516 seconds)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substititions
+;; 
+;; Similar to c preprocessor macros.
+;; All substitutions are defined in the list `substitutions'
+;; format: (symbol value)
+;;          replace 'sym' with 'value'
+;;    OR:  ((name args) def)
+;;         (replace call to 'name' with 'def', substituting 'args'
+;;
+;; Calling other substitions is OK
+;; but recursion or mutual recursion is not
+;;
+;; Example:       
+;;  with substitution definition:
+;;       '((set-color colors) (color (in-255 (car colors))
+;;                            (in-255 (cadr colors))
+;;                            (in-255 (caddr colors))))
+;;
+;; the code: 
+;;   (set-color "red")
+;;
+;; will be expanded as:
+;;   (color (min 255 (car "red"))
+;;          (min 255 (car (cdr "red")))
+;;          (min 255 (car (cdr (cdr "red")))))
+;;
+;;
+;; Substitutions are only expanded with macros `define-with-subst' and `mu-with-subst'
+;;
+(define substitutions
+  (list '((cadr x) (car (cdr x)))
+        '((caddr x) (car (cdr (cdr x))))
+        '((square x) (* x x))
+        (list  'half (/ canv-size 2))
+        '((in-255 value) (min 255 value))
+        '((set-color colors) (color (in-255 (car colors))
+                                    (in-255 (cadr colors))
+                                    (in-255 (caddr colors))))
+        '((set-dot x y colors) (begin (setpos x y) (dot dot-size
+                                                        (in-255 (car colors))
+                                                        (in-255 (cadr colors))
+                                                        (in-255 (caddr colors)))))
+        '((dot-product a b) ;for some reason works faster than tail recursive implementation
+          (+
+           (* (car a) (car b))
+           (* (cadr a) (cadr b))
+           (* (caddr a) (caddr b))))
+        
+        '((a-minus-bk a b k)
+          (list
+           (- (car a) (* (car b) k))
+           (- (cadr a) (* (cadr b) k))
+           (- (caddr a) (* (caddr b) k))))
+
+        ))
+
+(define (find-subst thing list)
+  ;;return the first element in LIST whose caar for caaar is THING
+  (if (null? list)
+      nil
+      (if (or (equal? (car (car list)) thing)
+              (and (list? (car (car list)))
+                   (equal? (car (car (car list))) thing)))
+          (car list)
+          (find-subst thing (cdr list)))))
+
+(define (subst-args subst)
+  (cdr (car subst)))
+
+(define (subst-body subst)
+  (car (cdr subst)))
+
+(define (zip x y)
+  (if (or (null? x)
+	  (null? y))
+      nil
+      (cons (list (car x) (car y))
+            (zip (cdr x) (cdr y)))))
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+
+(define (make-substitutions subs form)
+  (if (and (list? form)
+	   (> (length form) 0))
+      (begin
+        (define subst (find-subst (car form) subs))
+        (if (and (not (null? subst))
+                 (list? (car subst))) ;;must be function subst
+            (make-substitutions subs
+                                (make-substitutions (zip (subst-args subst) (cdr form))
+                                                    (subst-body subst)))
+            (map (lambda (x) (make-substitutions subs x)) form)))
+      (begin ;;else: symbol substitution
+        (define subst (find-subst form subs))
+        (if (null? subst)
+            form
+            (subst-body subst)))))
+
+(define-macro (define-with-subst formals body)
+  (list 'define formals 
+	(make-substitutions substitutions body)))
+
+(define-macro (mu-with-subst formals body)
+  (list 'mu formals 
+	(make-substitutions substitutions body)))
+
+
+(print "loading and expanding...")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 (define spheres (list
                  (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
@@ -39,52 +154,22 @@
                  (list 1 (list -2  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
                  (list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
                  ))
+
 (define lights (list (list 8 (list 2 2 0)))) ;; always even size
 (define camera (list 0 1 0))
 (define ambient-light 2)
-(define (set-dot x y colors) (setpos x y) (dot dot-size
-                                               (in-255 (car colors))
-                                               (in-255 (cadr colors))
-                                               (in-255 (caddr colors))))
 
-(define (set-color colors) (color (in-255 (car colors))
-                                  (in-255 (cadr colors))
-                                  (in-255 (caddr colors))) )
+(define half (/ canv-size 2))
 
-(define (cadr x)
-  (car (cdr x)))
-(define (caddr x)
-  (car (cdr (cdr x))))
+(define closest-intersection (mu-with-subst (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
+                                 (get-closest-sphere 0 spheres)))
 
-(define (in-255 value) (min 255 value))
-
-(define (map proc items)
-  (if (null? items)
-      nil
-      (cons (proc (car items))
-            (map proc (cdr items)))))
 (define (sum-lists a b) ; have to be equal size
   (if (null? a) nil (cons (+ (car a) (car b)) (sum-lists (cdr a) (cdr b)))))
 
-(define (square x) (* x x))
-
-(define (dot-product a b) ;for some reason works faster than tail recursive implementation
-  (+
-   (* (car a) (car b))
-   (* (cadr a) (cadr b))
-   (* (caddr a) (caddr b))))
-
-(define (a-minus-bk a b k)
-  (list
-   (- (car a) (* (car b) k))
-   (- (cadr a) (* (cadr b) k))
-   (- (caddr a) (* (caddr b) k))))
-
-(define closest-intersection (mu (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
-                                 (get-closest-sphere 0 spheres)))
 
 (define get-closest-sphere
-  (mu (v spheres-list)
+  (mu-with-subst (v spheres-list)
       (if (null? spheres-list)
           v
           (begin
@@ -112,7 +197,7 @@
             (get-closest-sphere v (cdr spheres-list))))))
 
 (define get-illumination
-  (mu (lights-list illumination)
+  (mu-with-subst (lights-list illumination)
       (if (null? lights-list)
           illumination
           (begin
@@ -134,142 +219,144 @@
             (get-illumination (cdr lights-list) illumination)))))
 
 
-(define trace-ray-iter (mu (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
-	(define min-dist canv-size)
-	(define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
-	(if (number? closest-sphere) ; if no intersection
-		prev-color
-		(begin
-			(define intersection (a-minus-bk source direction (- min-dist)))
-			(define normal (a-minus-bk intersection (car closest-sphere) 1))
-			(define closest-sphere (cdr closest-sphere)) ;; get to color
-			(define n (dot-product normal normal))
-			(define illumination (get-illumination lights ambient-light))
-			(define new-color (map (lambda (channel) (* channel 2.833 illumination prev-ref)) (car closest-sphere)))
-			(define curr-ref (/ (caddr closest-sphere) 9)) ;; get reflection
-			(if (> depth 0)
-				(begin
-					(define new-color (map (lambda (channel) (* channel (- 1 curr-ref))) new-color))
-					(define new-color (sum-lists new-color prev-color))
-					(trace-ray-iter
-						intersection
-						(a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
-						(/ 1 canv-size)
-						canv-size
-						(- depth 1)
-						new-color
-						(* curr-ref prev-ref)))
-				(sum-lists new-color prev-color))))))
+(define trace-ray-iter
+  (mu-with-subst (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
+                 (begin
+                   (define min-dist canv-size)
+                   (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
+                   (if (number? closest-sphere) ; if no intersection
+                       prev-color
+                       (begin
+                         (define intersection (a-minus-bk source direction (- min-dist)))
+                         (define normal (a-minus-bk intersection (car closest-sphere) 1))
+                         (define closest-sphere (cdr closest-sphere)) ;; get to color
+                         (define n (dot-product normal normal))
+                         (define illumination (get-illumination lights ambient-light))
+                         (define new-color (map (lambda (channel) (* channel 2.833 illumination prev-ref)) (car closest-sphere)))
+                         (define curr-ref (/ (caddr closest-sphere) 9)) ;; get reflection
+                         (if (> depth 0)
+                             (begin
+                               (define new-color (map (lambda (channel) (* channel (- 1 curr-ref))) new-color))
+                               (define new-color (sum-lists new-color prev-color))
+                               (trace-ray-iter
+                                intersection
+                                (a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
+                                (/ 1 canv-size)
+                                canv-size
+                                (- depth 1)
+                                new-color
+                                (* curr-ref prev-ref)))
+                             (sum-lists new-color prev-color)))))))
 
 (define (trace-ray source direction t_min t_max depth)
 	(trace-ray-iter source direction t_min t_max depth (list 0 0 0) 1))
 
-(define half (/ canv-size 2))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(define (worker y-coor) 
-  (define ret nil)
-  (define sub-contractor
-    (mu (x-left)
-        (if (< x-left half)
-            (begin
-              (set! ret (cons (list->vector (trace-ray
-                                             camera
-                                             (list (/ x-left canv-size)
-                                                   (/ y-coor canv-size) 1)
-                                             1
-                                             canv-size
-                                             2 ;reflection depth
-                                            )) 
-                              ret))
-              (sub-contractor (+ x-left dot-size))))))
-  
-  (sub-contractor (- half))
-  (vector y-coor (list->vector ret)))
+(define-with-subst (worker y-coor)
+  (begin
+    (define ret nil)
+    (define sub-contractor
+      (mu (x-left)
+          (if (< x-left half)
+              (begin
+                (set! ret (cons (list->vector (trace-ray
+                                               camera
+                                               (list (/ x-left canv-size)
+                                                     (/ y-coor canv-size) 1)
+                                               1
+                                               canv-size
+                                               2 ;reflection depth
+                                               )) 
+                                ret))
+                (sub-contractor (+ x-left dot-size))))))
+    
+    (sub-contractor (- half))
+    (vector y-coor (list->vector ret))))
 
-(define (async-draw-y y-top y-bottom)
+(define-with-subst (async-draw-y y-top y-bottom)
   ;;this version calculates each line, then draws them
   ;;it does not raytrace while the turtle works
-  (define (spawn-workers y-coor num)
-    (if (or (= num 0)
-            (< y-coor y-bottom))
-        nil
-        (cons (async worker (list y-coor))
-              (spawn-workers (- y-coor dot-size) (- num 1)))))
-  (if (> y-top y-bottom)
-      (begin
-        (define workers (spawn-workers y-top n-processors))
-        (map async-start workers)
-        (map draw-points (map async-get workers))
-        (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))))
+  (begin (define (spawn-workers y-coor num)
+           (if (or (= num 0)
+                   (< y-coor y-bottom))
+               nil
+               (cons (async worker (list y-coor))
+                     (spawn-workers (- y-coor dot-size) (- num 1)))))
+         (if (> y-top y-bottom)
+             (begin
+               (define workers (spawn-workers y-top n-processors))
+               (map async-start workers)
+               (map draw-points (map async-get workers))
+               (async-draw-y (- y-top (* dot-size n-processors)) y-bottom)))))
 
 (define lines nil)
 (define completed-lines 0)
-(define (async-draw-y y-top y-bottom)
+(define-with-subst (async-draw-y y-top y-bottom)
   ;;this version saves all calculated colors in 'lines'
   ;;then drawn them when all raytracing is finished
   ;;; it improves time from 81min to 54min for 500/1
-  (define (spawn-workers y-coor num)
-    (if (or (= num 0)
-            (< y-coor y-bottom))
-        nil
-        (cons (async worker (list y-coor))
-              (spawn-workers (- y-coor dot-size) (- num 1)))))
-  (if (> y-top y-bottom)
-      (begin
-        (define workers (spawn-workers y-top n-processors))
-        (map async-start workers)
-        (map (lambda (x) (set! lines (cons (async-get x) lines)))
-             workers)
-        
-        (set! completed-lines (+ completed-lines (* n-processors dot-size)))
-        (print (* (/ completed-lines canv-size) 100))
-        
-        (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))
-      (let ((start (time)))
-        (print "Drawing points...")
-        
-        (define (to-each proc items)
-          ;;tail recursively map a function - nothing returned
-          (define (iter proc items)
-            (if (null? items)
-                nil
-                (begin (proc (car items))
-                       (iter proc (cdr items)))))
-          (iter proc items))
-        (to-each draw-points lines)
-        (print (list 'drawing 'took (- (time) start) 'seconds)))))
+  (begin
+    (define (spawn-workers y-coor num)
+      (if (or (= num 0)
+              (< y-coor y-bottom))
+          nil
+          (cons (async worker (list y-coor))
+                (spawn-workers (- y-coor dot-size) (- num 1)))))
+    (if (> y-top y-bottom)
+        (begin
+          (define workers (spawn-workers y-top n-processors))
+          (map async-start workers)
+          (map (lambda (x) (set! lines (cons (async-get x) lines)))
+               workers)
+          
+          (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+          (print (* (/ completed-lines canv-size) 100))
+          
+          (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))
+        (let ((start (time)))
+          (print "Drawing points...")
+          
+          (define (to-each proc items)
+            ;;tail recursively map a function - nothing returned
+            (define (iter proc items)
+              (if (null? items)
+                  nil
+                  (begin (proc (car items))
+                         (iter proc (cdr items)))))
+            (iter proc items))
+          (to-each draw-points lines)
+          (print (list 'drawing 'took (- (time) start) 'seconds))))))
 
-(define (async-draw-y y-top y-bottom previous-lines)
+(define-with-subst (async-draw-y y-top y-bottom previous-lines)
   ;;this version starts processing the next batch of lines
   ;;as it draws the results from the previous batch
   ;;=> This is faster then normal but still slower then doing  all calculations first
-  (define (spawn-workers y-coor num)
-    (if (or (= num 0)
-            (< y-coor y-bottom))
-        nil
-        (cons (async worker (list y-coor))
-              (spawn-workers (- y-coor dot-size) (- num 1)))))
-  (if (> y-top y-bottom)
-      (begin
-        (define workers (spawn-workers y-top n-processors))
-        (map async-start workers)
-        (map draw-points previous-lines)
-        
-        (set! completed-lines (+ completed-lines (* n-processors dot-size)))
-        (print (* (/ completed-lines canv-size) 100))
-        
-        (async-draw-y (- y-top (* dot-size n-processors))
-                      y-bottom
-                      (map async-get workers)))
-      (map draw-points previous-lines)))
+  (begin
+    (define (spawn-workers y-coor num)
+      (if (or (= num 0)
+              (< y-coor y-bottom))
+          nil
+          (cons (async worker (list y-coor))
+                (spawn-workers (- y-coor dot-size) (- num 1)))))
+    (if (> y-top y-bottom)
+        (begin
+          (define workers (spawn-workers y-top n-processors))
+          (map async-start workers)
+          (map draw-points previous-lines)
+          
+          (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+          (print (* (/ completed-lines canv-size) 100))
+          
+          (async-draw-y (- y-top (* dot-size n-processors))
+                        y-bottom
+                        (map async-get workers)))
+        (map draw-points previous-lines))))
 
-(define (draw-points colors)
+(define-with-subst (draw-points colors)
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
   ;;     and 'colors' is a vector of rgb color values (reversed)
@@ -288,14 +375,13 @@
     ))
 
 
-
-
 ;;; new draw-points with lines
-(define (draw-points colors)
+(define-with-subst (draw-points colors)
  ;;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
   ;;     and 'colors' is a vector of rgb color values (reversed)
+  (begin
   (define y-coor (vector-ref colors 0))
   (define colors (vector-ref colors 1))
   (define current-line 0)
@@ -326,58 +412,55 @@
                                      (set! foward-dist 1)
                                      (draw-point (- index 1))))))))
   (draw-point (- (vector-length colors) 1))
-  (update))
+  (update)))
 
 ;;; new draw-points with lines
-(define (draw-points colors)
+(define-with-subst (draw-points colors)
 	;;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
   ;;     and 'colors' is a vector of rgb color values (reversed)
-  		(define y-coor (vector-ref colors 0))
-        (define colors (vector-ref colors 1))
-        (penup)
-        (setpos (- half) y-coor)
-        (pendown)
-        (define draw-point (mu (index)
-                        (if (< index 0) nil
-                            (begin (set-color
-                                    (vector->list (vector-ref colors index)))
-                            		(fd dot-size)
-                                   (draw-point (- index 1))))))
+  (begin
+    (define y-coor (vector-ref colors 0))
+    (define colors (vector-ref colors 1))
+    (penup)
+    (setpos (- half) y-coor)
+    (pendown)
+    (define draw-point (mu (index)
+                           (if (< index 0) nil
+                               (begin (set-color
+                                       (vector->list (vector-ref colors index)))
+                                      (fd dot-size)
+                                      (draw-point (- index 1))))))
     (draw-point (- (vector-length colors) 1))
-    (update))
-
-
-
-
+    (update)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (draw-y y-top y-bottom)
-	(if (> y-top y-bottom)
-		(begin
-			(setpos (- half) y-top)
-			(pendown)
-			(draw-x (- half) half)
-			(penup)
-			(draw-y (- y-top dot-size) y-bottom))))
+(define-with-subst (draw-y y-top y-bottom)
+  (if (> y-top y-bottom)
+      (begin
+        (setpos (- half) y-top)
+        (pendown)
+        (draw-x (- half) half)
+        (penup)
+        (draw-y (- y-top dot-size) y-bottom))))
 
-(define draw-x (mu (x-left x-right)
-                   (if (< x-left x-right)
-                       (begin
-                       	(define new-color (trace-ray
-                           camera
-                           (list (/ x-left canv-size) (/ y-top canv-size) 1)
-                           1
-                           canv-size
-                           2 ; reflection depth
-                           ))
-                         (set-color new-color)
-                         (fd dot-size)
-                         (draw-x (+ x-left dot-size) x-right)))))
+(define draw-x (mu-with-subst (x-left x-right)
+                              (if (< x-left x-right)
+                                  (begin
+                                    (define new-color (trace-ray
+                                                       camera
+                                                       (list (/ x-left canv-size) (/ y-top canv-size) 1)
+                                                       1
+                                                       canv-size
+                                                       2 ; reflection depth
+                                                       ))
+                                    (set-color new-color)
+                                    (fd dot-size)
+                                    (draw-x (+ x-left dot-size) x-right)))))
 
 ;;NOTE: (exitonclick) commented out just for testing
 (define (normal-draw) (speed 0) (penup) (pensize dot-size) (draw-y half (- half)) ;(exitonclick)
