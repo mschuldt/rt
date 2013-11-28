@@ -242,11 +242,8 @@
               nil))
 
 
-
 (define* (worker work-Q results-Q)
   (begin
-    (define ret nil)
-
     (define calc-line
       (mu (x-left y-coor)
           (if (< x-left half)
@@ -261,15 +258,14 @@
                     (calc-line (+ x-left dot-size) y-coor))
               nil)))
 
-    (define worker-iter
-      (mu ()
+    (define (worker-iter)
           (if (queue-empty? work-Q)
               (begin
                 (queue-put results-Q 'done)
                 0)
               (let ((y-coor (queue-get work-Q)))
                 (queue-put results-Q (vector y-coor (list->vector (calc-line (- half) y-coor)))) 
-                (worker-iter)))))
+                (worker-iter))))
     
     (worker-iter)))
 
