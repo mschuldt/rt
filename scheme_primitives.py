@@ -351,8 +351,23 @@ def _tscheme_prep():
         turtle.setundobuffer(0)
         turtle.shape("turtle")
         turtle.screensize(600, 600)
-        turtle.tracer(500)
+        turtle.setundobuffer(0)
+        #turtle.tracer(500) ;;this is slower
+        turtle.tracer(0) 
 
+        
+@primitive("update")
+def tscheme_update():
+    _tscheme_prep()
+    turtle.update()
+    return okay
+    
+@primitive("tracer")
+def tscheme_tracer(num):
+    _check_nums(num)
+    _tscheme_prep()
+    turtle.tracer(num)
+    
 @primitive("forward", "fd")
 def tscheme_forward(n):
     """Move the turtle forward a distance N units on the current heading."""

@@ -1,5 +1,5 @@
 (define canv-size 300)
-(define dot-size 10)
+(define dot-size 5)
 (define n-processors 8) ;; must be >= 1
 
 
@@ -251,7 +251,7 @@
 
 (define (async-draw-y y-top y-bottom)
   ;;this version calculates each line, then draws them
-  ;;it does not raytracing while the turtle works
+  ;;it does not raytrace while the turtle works
   (define (spawn-workers y-coor num)
     (if (or (= num 0)
             (< y-coor y-bottom))
@@ -263,8 +263,6 @@
         (define workers (spawn-workers y-top n-processors))
         (map async-start workers)
         (map draw-points (map async-get workers))
-        (update)
-        (print ".")
         (async-draw-y (- y-top (* dot-size n-processors)) y-bottom))))
 
 (define lines nil)
@@ -302,17 +300,58 @@
                        (iter proc (cdr items)))))
           (iter proc items))
         (to-each draw-points lines)
-        (print (list 'drawing 'took (- (time) start) 'seconds)))
-      ))
+        (print (list 'drawing 'took (- (time) start) 'seconds)))))
 
+(define (async-draw-y y-top y-bottom previous-lines)
+  ;;this version starts processing the next batch of lines
+  ;;as it draws the results from the previous batch
+  ;;=> This is faster then normal but still slower then doing  all calculations first
+  (define (spawn-workers y-coor num)
+    (if (or (= num 0)
+            (< y-coor y-bottom))
+        nil
+        (cons (async worker (list y-coor))
+              (spawn-workers (- y-coor dot-size) (- num 1)))))
+  (if (> y-top y-bottom)
+      (begin
+        (define workers (spawn-workers y-top n-processors))
+        (map async-start workers)
+        (map draw-points previous-lines)
+        
+        (set! completed-lines (+ completed-lines (* n-processors dot-size)))
+        (print (* (/ completed-lines canv-size) 100))
+        
+        (async-draw-y (- y-top (* dot-size n-processors))
+                      y-bottom
+                      (map async-get workers)))
+      (map draw-points previous-lines)))
 
 (define (draw-points colors)
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
   ;;     and 'colors' is a vector of rgb color values (reversed)
+  (let ((y-coor (vector-ref colors 0))
+        (colors (vector-ref colors 1))
+        (draw-point (mu (index x-coor)
+                        (if (< index 0) nil
+                            (begin (set-dot
+                                    x-coor
+                                    y-coor
+                                    (vector->list (vector-ref colors index)))
+                                   (draw-point (- index 1)
+                                               (+ x-coor dot-size)))))))
+    (draw-point (- (vector-length colors) 1) (- half))
+    (update)
+    ))
+
+;;; new draw-points with lines
+(define (draw-points colors)
+	;;; Draws points with lines
+  ;;COLORS is a vector with format: [y-coor colors]
+  ;;Where 'y-coor' is the y-coordinate of the line
+  ;;     and 'colors' is a vector of rgb color values (reversed)
   		(define y-coor (vector-ref colors 0))
         (define colors (vector-ref colors 1))
-        (define length nil)
         (penup)
         (setpos (- half) y-coor)
         (pendown)
@@ -356,7 +395,7 @@
 ;;NOTE: (exitonclick) commented out just for testing
 (define (normal-draw) (speed 0) (penup) (pensize dot-size) (draw-y half (- half)) ;(exitonclick)
   )
-(define (fast-draw) (speed 0) (penup) (pensize dot-size) (setheading 90) (async-draw-y half (- half)) ;(exitonclick)
+(define (fast-draw) (speed 0) (penup) (pensize dot-size) (setheading 90) (async-draw-y half (- half) nil) ;(exitonclick)
   )
 
 (define (draw)
