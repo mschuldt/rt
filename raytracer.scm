@@ -1,38 +1,34 @@
-(define canv-size 500)
-(define dot-size 1)
-(define n-processors 8) ;; must be >= 1
+(define canv-size 300)
+(define dot-size 10)
+(define n-processors 16) ;; must be >= 1
+
+;;run times for 4 spheres:
+;;200/10 (run time: 4.971529722213745 seconds)
+
+;;;run times for 64 spheres:
+;; 200/10 (run time: 2 minutes 7.498538970947266 seconds)
 
 
-(define testing-new #t) ;;set to false to use use the old spheres and orientation
+(define basic #f) ;;set to true to render the basic 4 sphere scene
 
+(define lights '((8 (2 2 0))
+                 (10 (0 0 -50))
+                 (10 (0 0 -20))))
 
-(define lights (list (list 8 (list 2 2 0)))) ;; always even size
-(if testing-new
-    (define lights '((8 (2 2 0))
-                     (10 (0 0 -50))
-                     (10 (0 0 -20)))))
+(if basic
+    (define lights (list (list 8 (list 2 2 0))))
+    )
 
-(define camera (list 0 1 0))
-(if testing-new
-    (define camera (list -15 5 -80)))
-
+(define camera (list -15 5 -80))
+(if basic
+    (define camera (list 0 1 0)))
 
 (define reflection-depth 2)
 
 (define ambient-light 2)
 
-
-(define spheres (list
-                 (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
-                 (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
-                 (list 1 (list -2  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
-                 (list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
-                 ))
-
-
-
-(if testing-new
-    (define spheres '((125 (-125 -72.16878364870321 0) (8.0 2.0 10.0) 9 7) (0.32549258922520563 (-54.68275498983455 31.571103187305667 0) (10.0 0.0 0.0) 9 7) (0.37813562991079136 (-54.07339507724316 31.219289068611484 0) (10.0 6.0 2.0) 9 7) (0.44467351214795175 (-53.36082145775421 30.807884487038613 0) (10.0 10.0 4.0) 9 7) (0.5304679212539934 (-52.51632420414535 30.320313758021214 0) (6.0 10.0 4.0) 9 7) (0.6437428481060288 (-51.4994278484823 29.733208358767676 0) (2.0 8.0 10.0) 9 7) (0.7976373958837171 (-50.251155940674174 29.012518219266525 0) (1.3 5.4 1.3) 9 7) (0.3974660517417542 (-5.167058672642805 19.046601455740404 0) (10.0 5.1 9.8) 9 7) (0.3843667460069968 (-46.124009520839614 25.298223595303053 0) (10.0 5.1 9.8) 9 7) (0.3843667460069968 (-44.970909282818624 27.295451793775168 0) (10.0 5.1 9.8) 9 7) (1.0142093874692784 (-48.682050598525365 28.106594806181036 0) (10.0 5.1 9.8) 9 7) (0.3407066126724756 (-27.256529013798048 6.294625288393284 0) (9.3 2.5 0.0) 9 7) (0.3407066126724756 (-19.079570309658635 20.457533215355316 0) (9.3 2.5 0.0) 9 7) (0.555745624377355 (-6.113201868150905 18.930732767402823 0) (9.3 2.5 0.0) 9 7) (0.3934434590902016 (-31.47547672721613 11.357733928712236 0) (9.3 2.5 0.0) 9 7) (0.3934434590902016 (-25.573824840863104 21.579694844460374 0) (9.3 2.5 0.0) 9 7) (0.33483755461753206 (-40.18050655410385 20.105129109190813 0) (9.3 2.5 0.0) 9 7) (0.3895014727116597 (-38.56064579845431 18.66493840170463 0) (9.3 2.5 0.0) 9 7) (0.33483755461753206 (-37.50180611716359 24.744774364228288 0) (9.3 2.5 0.0) 9 7) (0.3895014727116597 (-35.44463401676103 24.062029124580615 0) (9.3 2.5 0.0) 9 7) (0.5402979518477707 (-43.22383614782166 23.08364613786322 0) (9.3 2.5 0.0) 9 7) (0.5402979518477707 (-41.60294229227835 25.891116649340443 0) (9.3 2.5 0.0) 9 7) (1.3328412882676501 (-46.64944508936775 26.93306944156254 0) (9.3 2.5 0.0) 9 7) (0.3224398680214002 (-20.63615155336961 5.957143337105627 0) (10.0 0.0 0.0) 9 7) (0.34792108209285205 (-19.135659515106862 4.620063101565141 0) (10.0 0.0 0.0) 9 7) (0.4634647783446199 (-18.538591133784795 6.957118880722827 0) (10.0 0.0 0.0) 9 7) (0.34688624911439203 (-23.93515118889305 5.407420995669364 0) (10.0 0.0 0.0) 9 7) (0.39611607917480635 (-24.9553129880128 3.430465401921539 0) (10.0 0.0 0.0) 9 7) (0.553109960876242 (-26.549278122059615 5.748086864909592 0) (10.0 0.0 0.0) 9 7) (0.4391575938325384 (-19.762091722464227 0.76064276770684 0) (10.0 0.0 0.0) 9 7) (0.4659944179725466 (-22.367732062682236 -4.984098995428828e-07 0) (10.0 0.0 0.0) 9 7) (0.8317694276863223 (-19.962466264471736 -2.8813343136436065 0) (10.0 0.0 0.0) 9 7) (0.3224398680214002 (-15.477113665027208 14.892859077887518 0) (10.0 0.0 0.0) 9 7) (0.34792108209285205 (-13.56892220162123 14.26193496091173 0) (10.0 0.0 0.0) 9 7) (0.4634647783446199 (-15.294337685372456 12.576330686003532 0) (10.0 0.0 0.0) 9 7) (0.34688624911439203 (-16.650539957490817 18.024737761844918 0) (10.0 0.0 0.0) 9 7) (0.39611607917480635 (-15.448527087817448 19.896701597739316 0) (10.0 0.0 0.0) 9 7) (0.553109960876242 (-18.252628708915985 20.118305181060865 0) (10.0 0.0 0.0) 9 7) (0.4391575938325384 (-10.53978225198092 16.73415133370755 0) (10.0 0.0 0.0) 9 7) (0.4659944179725466 (-11.183866031341118 19.37102370525646 0) (10.0 0.0 0.0) 9 7) (0.8317694276863223 (-7.485924849176901 18.728669320384352 0) (10.0 0.0 0.0) 9 7) (0.4580045573578863 (-31.602314457694156 15.601313804870427 0) (10.0 0.0 0.0) 9 7) (0.5479129281220673 (-34.51851447169024 14.86787040565846 0) (10.0 0.0 0.0) 9 7) (0.6657926711538377 (-31.95804821538421 12.300658076599218 0) (10.0 0.0 0.0) 9 7) (0.4580045573578863 (-29.312291670904724 19.567749622080196 0) (10.0 0.0 0.0) 9 7) (0.5479129281220673 (-30.1352110467137 22.459974642708502 0) (10.0 0.0 0.0) 9 7) (0.6657926711538377 (-26.631706846153506 21.52615194656277 0) (10.0 0.0 0.0) 9 7) (0.8143459210779348 (-39.08860421174087 19.746838803636816 0) (10.0 0.0 0.0) 9 7) (0.8143459210779348 (-36.64556644850707 23.978304334367195 0) (10.0 0.0 0.0) 9 7) (1.8296116864575847 (-43.91068047498203 25.35184291989713 0) (10.0 0.0 0.0) 9 7) (0.9235054586676283 (-19.393614632020196 5.8650468813513505 0) (10.0 6.0 2.0) 9 7) (1.050759905878541 (-25.218237741084984 4.85325164637485 0) (10.0 6.0 2.0) 9 7) (1.3801598473898486 (-20.70239771084773 -0.7968361529988659 0) (10.0 6.0 2.0) 9 7) (0.9235054586676283 (-14.776087338682053 13.862838758749009 0) (10.0 6.0 2.0) 9 7) (1.050759905878541 (-16.812158494056657 19.413007994678246 0) (10.0 6.0 2.0) 9 7) (1.3801598473898486 (-9.661118931728941 18.327219672966937 0) (10.0 6.0 2.0) 9 7) (1.3640180483542248 (-32.73643316050139 14.175290966633698 0) (10.0 6.0 2.0) 9 7) (1.3640180483542248 (-28.64437901543872 21.262936653205074 0) (10.0 6.0 2.0) 9 7) (2.667724852208609 (-40.01587278312914 23.10317460517984 0) (10.0 6.0 2.0) 9 7) (2.7301750707082078 (-21.841400565665662 3.1525341358230325 0) (10.0 10.0 4.0) 9 7) (2.7301750707082078 (-13.65087535354104 17.338939943896733 0) (10.0 10.0 4.0) 9 7) (4.252813811554711 (-34.02251049243769 19.64290521108458 0) (10.0 10.0 4.0) 9 7) (7.847715036835193 (-23.543145110505577 13.59264069936055 0) (6.0 10.0 4.0) 9 7) (19.33756729740644 (0 -5.763044147910607e-07 0) (2.0 8.0 10.0) 9 7))))
+(define circle-depth 13) ;;below level 13 there are no more circles of radius > 0.3
+(define color-list '((2.0 8.0 10.0) (6.0 10.0 4.0) (10.0 10.0 4.0) (10.0 6.0 2.0) (10.0 0.0 0.0) (9.3 2.5 0.0) (10.0 5.1 9.8) (1.3 5.4 1.3)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -69,6 +65,7 @@
 (define substitutions
   (list '((cadr x) (car (cdr x)))
         '((caddr x) (car (cdr (cdr x))))
+        '((cadddr x) (caddr (cdr x)))
         '((square x) (* x x))
         (list  'half (/ canv-size 2))
         '((in-255 value) (min 255 value))
@@ -91,8 +88,54 @@
            (- (cadr a) (* (cadr b) k))
            (- (caddr a) (* (caddr b) k))))
 
+        ;;circles
+
+
+        '((curvature c) (/ 1 (radius c)))
+        '((make-circle center radius color reflection)
+          (list radius center color reflection))
+        ;;complex numbers
+        '((complex real imag)
+          (list real imag))
+        '((real z) (car z))
+        '((imag z) (cadr z))
+        '((magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
+        
+        '((abs n)
+          (if (< n 0) (- n) n))
+
         ))
 
+(define (center c) (cadr c))
+(define (x-coor c) (car (center c)))
+(define (y-coor c) (cadr (center c)))
+
+
+(define (radius c) (car c)) ;;conflict
+
+(define-macro (for var in lst : code)
+  ;;This is why lisp is amazing!
+  (list 'let '()
+        (list 'define (list '_call_ var)
+              code)
+        '(define (_do_ lst)
+           (if (not (null? lst))
+               (begin
+                 (_call_ (car lst))
+                 (_do_ (cdr lst)))))
+        (list '_do_ lst)))
+
+(define-macro (define-substitutions)
+  ;;bind the substitutions to actual function names so
+  ;;that they may be used outside of define* and mu* macros
+
+  (define subs nil)
+  (for s in substitutions :
+       (set! subs (cons (list 'define (car s) (car (cdr s))) subs)))
+  (cons 'begin subs))
+
+(define-substitutions)
+  
 (define (find-subst thing list)
   ;;return the first element in LIST whose caar for caaar is THING
   (if (null? list)
@@ -115,12 +158,26 @@
       nil
       (cons (list (car x) (car y))
             (zip (cdr x) (cdr y)))))
+
+;;tail recursive with correct ordering
+(define (mapcar proc items)
+  (define results nil)
+  (for thing in items :
+       (set! results (cons (proc thing) results)))
+  (reverse results))
+
+;; result list is reversed
 (define (map proc items)
   (if (null? items)
       nil
       (cons (proc (car items))
             (map proc (cdr items)))))
 
+;; (define (map proc items)
+;;   (if (null? items)
+;;       nil
+;;       (cons (proc (car items))
+;;             (map proc (cdr items)))))
 
 (define (make-substitutions subs form)
   (if (and (list? form)
@@ -139,21 +196,228 @@
             form
             (subst-body subst)))))
 
-
 (define-macro (define* formals body)
   (list 'define formals
         (make-substitutions substitutions body)))
         
-
 (define-macro (mu* formals body)
   (list 'mu formals
         (make-substitutions substitutions body)))
 
-
 (print "loading and expanding...")
-
+(define load-start-time (time))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;sphere generation
+
+(define circles nil)
+
+
+(define (circle-color c) (car (cdr (cdr c))))
+(define (reflectiveness c) (car (cdr (cdr (cdr c)))))
+
+(define (make-circle center radius color reflection)
+  (list radius center  color reflection))
+
+
+;; fun fact:
+;; if you do make substitutions for c+ and c*,
+;; it will take 1 hour 45min to finish
+;; the the resulting code will have 855766 tokens
+(define* (c+ z1 z2)
+  (complex (+ (real z1) (real z2))
+           (+ (imag z1) (imag z2))))
+
+(define* (c* z1 z2) 
+  (if (number? z2)
+      (complex (* (real z1) z2) (* (imag z1) z2))
+      (complex (- (* (real z1) (real z2)) (* (imag z1) (imag z2)))
+               (+ (* (real z1) (imag z2)) (* (imag z1) (real z2))))))
+
+
+(define* (c-sqrt z)
+  (let ((x (real z))
+        (y (imag z))
+        (r (magnitude z)))
+    (complex (sqrt (/ (+ r x) 2))
+             (* (if (= y 0) 1 (/ y (abs y))) (sqrt (/ (- r x) 2))))))
+
+
+;;return list of all triples of mutually tangental circles
+(define* (find-new-tangencies circles)
+  ;;circles is a list of lists of 3 circles with format (c1 c2 c3 new)
+  ;;where 'new' is the newly calculated circle that is mutually
+  ;;tangential to c1, c2, and c2
+  (begin
+    (define (find circles sofar)
+      (if (null? circles)
+          sofar
+          (let ((c1 (car (car circles)))
+                (c2 (cadr (car circles)))
+                (c3 (caddr (car circles)))
+                (new (cadddr (car circles))))
+            (find (cdr circles ) (cons (list c1 c2 new)
+                                       (cons (list c1 c3 new)
+                                             (cons (list c2 c3 new)
+                                                   sofar)))))))
+    (find circles nil)))
+
+
+(define (get-color level)
+  (nth color-list (modulo level (length color-list))))
+
+(define (find-tangent-circles circles level)
+  (define (find-iter circles sofar)
+    (if (null? circles)
+        sofar
+        (let ((lst (car circles)))
+          (define new (find-tangent-circle (car lst) (cadr lst) (caddr lst) level))
+          (if (null? new)
+              (find-iter (cdr circles) sofar)
+              (find-iter (cdr circles) (cons new sofar))))))
+  (find-iter circles nil))
+
+(define* (find-spheres)
+  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) 7 ))
+        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 7))
+        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 7))
+        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) 7)))
+    (print "finding spheres...")
+    (define (find circles tangencies level)
+      (if (< level circle-depth) 
+          (let ((new-circles (find-tangent-circles tangencies level)))
+            (find (append circles (mapcar (lambda (lst) (cadddr lst)) new-circles))
+                  (find-new-tangencies new-circles)
+                  (+ level 1)))))
+    
+    (find (list c1 c2 c3 c4)
+          (list (list c1 c2 c3) (list c1 c2 c4) (list c1 c3 c4) (list c2 c3 c4)) ;;lists of tangent circles
+          0)
+
+    (print "filtering good spheres...")
+    (filter-circles)
+    (set! spheres (convert))
+    (print (list 'rendering (length spheres) 'spheres))
+    ))
+
+(define* (nth lst i)
+  (if (= i 0)
+      (car lst)
+      (nth (cdr lst) (- i 1))))
+
+;; ref: http://en.wikipedia.org/wiki/Descartes%27_theorem
+(define* (find-tangent-circle c1 c2 c3 level)
+  ;;returns a new circle that is mutually tangent to c1, c2, and c3
+  (let ((z1 (center c1))
+        (z2 (center c2))
+        (z3 (center c3))
+        (k1 (curvature c1))
+        (k2 (curvature c2))
+        (k3 (curvature c3)))
+
+    (define k4 (+ k1 k2 k3 (* 2 (sqrt (+ (* k1 k2)
+                                         (* k2 k3)
+                                         (* k3 k1))))))
+
+    (define _1 (c+ (c+ (c* z1 k1)
+                       (c* z2 k2))
+                   (c* z3 k3)))
+    
+    (define _2 (c-sqrt (c+ (c+ (c* (c* z1 z2)
+                                   (* k1 k2))
+                               (c* (c* z2 z3)
+                                   (* k2 k3)))
+                           (c* (c* z3 z1)
+                               (* k3 k1)))))
+    
+    ;;;z4 has two possible solutions, the one whose magnitude is largest is the one we keep
+    
+    (define z4 (c* (c+ _1
+                       (c* _2
+                           2))
+                   (/ 1 k4)))
+    
+    (define z42 (c* (c+ _1
+                        (c* _2
+                            -2))
+                    (/ 1 k4)))
+
+    (define new (if (> (magnitude z4) (magnitude z42))
+                    (make-circle z4 (/ 1 k4) (get-color level) 7)
+                    (make-circle z42 (/ 1 k4) (get-color level) 7)))
+    
+    ;;throw out circles that are to far from the origin
+    ;;or have a radius that is too small
+    ;;to prevent massive circle accumulation
+    (if (or (> (magnitude (center new)) 72)
+            (< (radius new) 0.3))
+        
+        nil
+        (begin
+          (set! circles (cons new circles))
+          (list c1 c2 c3 new)))))
+
+
+
+
+
+(define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) 7)))
+
+(define* (filter-circles)
+  (begin
+
+    (for c in circles :
+         (if (and (< (magnitude (center c)) 72) ;; radius*tan(180/6) ~ 72
+                  (or (and (>= (x-coor c) 0) ;;only in 1st quadrant
+                           (>= (y-coor c) 0))
+                      (< (magnitude (center c)) 1) ;;execpt for the middle one
+                      (and (> (x-coor c) 0) ;; or the ones in the forth quadrant
+                           (< (y-coor c) 0) ;; that are close to the the x-axes
+                           (> (y-coor c) (- 3)))
+                      ))
+             ;;TODO: throw out the small ones
+             (set! good (cons c good))))))
+
+
+(define* (convert) 
+  (begin
+    (define out nil)
+    (for c in good :
+         (set! out (cons (list (radius c)
+                               (list
+                                ;;(- (y-coor c)) ;;refect 90deg
+                                ;;(x-coor c)
+                                
+                                (- (x-coor c))
+                                (y-coor c)
+                                
+                                0)
+                               (circle-color c)
+                               9 
+                               (reflectiveness c))
+                         out)))
+    out))
+
+(define (reverse lst)
+  (define newlist nil)
+  (for i in lst :
+       (set! newlist (cons i newlist)))
+  newlist)
+
+
+
+;;end sphere generation code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define spheres (list
+                 (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
+                 (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
+                 (list 1 (list -2  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
+                 (list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
+                 ))
 
 
 (define half (/ canv-size 2))
@@ -349,7 +613,6 @@
     
     (get-draw-repeat)))
     
-
 (define* (draw-points colors)
   ;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
@@ -398,9 +661,20 @@
                                     (draw-x (+ x-left dot-size) x-right)))))
 
 ;;NOTE: (exitonclick) commented out just for testing
-(define (normal-draw) (speed 0) (penup) (pensize dot-size) (draw-y half (- half)) ;(exitonclick)
+(define (normal-draw)
+  (speed 0)
+  (penup)
+  (pensize dot-size)
+  (if basic nil (find-spheres))
+  (draw-y half (- half)) ;(exitonclick)
   )
-(define (fast-draw) (speed 0) (penup) (pensize dot-size) (setheading 90) (async-draw-y half (- half)) ;(exitonclick)
+
+(define (fast-draw) (speed 0)
+  (penup)
+  (pensize dot-size)
+  (setheading 90)
+  (if basic nil (find-spheres))
+  (async-draw-y half (- half)) ;(exitonclick)
   )
 
 (define (draw)
@@ -420,3 +694,5 @@
 
 (define (time-draw)
   (time-eval (draw)))
+
+(print (list 'expansion 'time: (- (time) load-start-time) 'seconds))
