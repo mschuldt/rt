@@ -1,6 +1,6 @@
-(define canv-size 300)
-(define dot-size 10)
-(define n-processors 16) ;; must be >= 1
+(define canv-size 100)
+(define dot-size 1)
+(define n-processors 8) ;; must be >= 1
 
 ;;run times for 4 spheres:
 ;;200/10 (run time: 4.971529722213745 seconds)
@@ -11,8 +11,7 @@
 
 (define basic #f) ;;set to true to render the basic 4 sphere scene
 
-(define lights '((8 (2 2 0))
-                 (10 (0 0 -50))
+(define lights '((10 (0 0 -50))
                  (10 (0 0 -20))))
 
 (if basic
@@ -29,11 +28,11 @@
 
 (define circle-depth 13) ;;below level 13 there are no more circles of radius > 0.3
 (define color-list '((2.0 8.0 10.0) (6.0 10.0 4.0) (10.0 10.0 4.0) (10.0 6.0 2.0) (10.0 0.0 0.0) (9.3 2.5 0.0) (10.0 5.1 9.8) (1.3 5.4 1.3)))
-
+(define color-length (length color-list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Substitutions
-;; 
+;;
 ;; Similar to c preprocessor macros.
 ;; All substitutions are defined in the list `substitutions'
 ;; format: (symbol value)
@@ -44,13 +43,13 @@
 ;; Calling other substitions is OK
 ;; but recursion or mutual recursion is not
 ;;
-;; Example:       
+;; Example:
 ;;  with substitution definition:
 ;;       '((set-color colors) (color (in-255 (car colors))
 ;;                            (in-255 (cadr colors))
 ;;                            (in-255 (caddr colors))))
 ;;
-;; the code: 
+;; the code:
 ;;   (set-color red)
 ;;
 ;; will be expanded as:
@@ -72,16 +71,12 @@
         '((set-color colors) (color (in-255 (car colors))
                                     (in-255 (cadr colors))
                                     (in-255 (caddr colors))))
-        '((set-dot x y colors) (begin (setpos x y) (dot dot-size
-                                                        (in-255 (car colors))
-                                                        (in-255 (cadr colors))
-                                                        (in-255 (caddr colors)))))
         '((dot-product a b) ;for some reason works faster than tail recursive implementation
           (+
            (* (car a) (car b))
            (* (cadr a) (cadr b))
            (* (caddr a) (caddr b))))
-        
+
         '((a-minus-bk a b k)
           (list
            (- (car a) (* (car b) k))
@@ -100,7 +95,7 @@
         '((real z) (car z))
         '((imag z) (cadr z))
         '((magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
-        
+
         '((abs n)
           (if (< n 0) (- n) n))
 
@@ -135,7 +130,7 @@
   (cons 'begin subs))
 
 (define-substitutions)
-  
+
 (define (find-subst thing list)
   ;;return the first element in LIST whose caar for caaar is THING
   (if (null? list)
@@ -160,24 +155,18 @@
             (zip (cdr x) (cdr y)))))
 
 ;;tail recursive with correct ordering
-(define (mapcar proc items)
+(define (map proc items)
   (define results nil)
   (for thing in items :
        (set! results (cons (proc thing) results)))
   (reverse results))
 
-;; result list is reversed
-(define (map proc items)
-  (if (null? items)
-      nil
-      (cons (proc (car items))
-            (map proc (cdr items)))))
+(define (reverse lst)
+  (define newlist nil)
+  (for i in lst :
+       (set! newlist (cons i newlist)))
+  newlist)
 
-;; (define (map proc items)
-;;   (if (null? items)
-;;       nil
-;;       (cons (proc (car items))
-;;             (map proc (cdr items)))))
 
 (define (make-substitutions subs form)
   (if (and (list? form)
@@ -199,7 +188,7 @@
 (define-macro (define* formals body)
   (list 'define formals
         (make-substitutions substitutions body)))
-        
+
 (define-macro (mu* formals body)
   (list 'mu formals
         (make-substitutions substitutions body)))
@@ -231,7 +220,7 @@
   (complex (+ (real z1) (real z2))
            (+ (imag z1) (imag z2))))
 
-(define* (c* z1 z2) 
+(define* (c* z1 z2)
   (if (number? z2)
       (complex (* (real z1) z2) (* (imag z1) z2))
       (complex (- (* (real z1) (real z2)) (* (imag z1) (imag z2)))
@@ -267,7 +256,7 @@
 
 
 (define (get-color level)
-  (nth color-list (modulo level (length color-list))))
+  (nth color-list (modulo level color-length)))
 
 (define (find-tangent-circles circles level)
   (define (find-iter circles sofar)
@@ -287,12 +276,12 @@
         (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) 7)))
     (print "finding spheres...")
     (define (find circles tangencies level)
-      (if (< level circle-depth) 
+      (if (< level circle-depth)
           (let ((new-circles (find-tangent-circles tangencies level)))
-            (find (append circles (mapcar (lambda (lst) (cadddr lst)) new-circles))
+            (find (append circles (map (lambda (lst) (cadddr lst)) new-circles))
                   (find-new-tangencies new-circles)
                   (+ level 1)))))
-    
+
     (find (list c1 c2 c3 c4)
           (list (list c1 c2 c3) (list c1 c2 c4) (list c1 c3 c4) (list c2 c3 c4)) ;;lists of tangent circles
           0)
@@ -325,21 +314,21 @@
     (define _1 (c+ (c+ (c* z1 k1)
                        (c* z2 k2))
                    (c* z3 k3)))
-    
+
     (define _2 (c-sqrt (c+ (c+ (c* (c* z1 z2)
                                    (* k1 k2))
                                (c* (c* z2 z3)
                                    (* k2 k3)))
                            (c* (c* z3 z1)
                                (* k3 k1)))))
-    
+
     ;;;z4 has two possible solutions, the one whose magnitude is largest is the one we keep
-    
+
     (define z4 (c* (c+ _1
                        (c* _2
                            2))
                    (/ 1 k4)))
-    
+
     (define z42 (c* (c+ _1
                         (c* _2
                             -2))
@@ -348,13 +337,13 @@
     (define new (if (> (magnitude z4) (magnitude z42))
                     (make-circle z4 (/ 1 k4) (get-color level) 7)
                     (make-circle z42 (/ 1 k4) (get-color level) 7)))
-    
+
     ;;throw out circles that are to far from the origin
     ;;or have a radius that is too small
     ;;to prevent massive circle accumulation
     (if (or (> (magnitude (center new)) 72)
             (< (radius new) 0.3))
-        
+
         nil
         (begin
           (set! circles (cons new circles))
@@ -367,8 +356,6 @@
 (define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) 7)))
 
 (define* (filter-circles)
-  (begin
-
     (for c in circles :
          (if (and (< (magnitude (center c)) 72) ;; radius*tan(180/6) ~ 72
                   (or (and (>= (x-coor c) 0) ;;only in 1st quadrant
@@ -379,10 +366,10 @@
                            (> (y-coor c) (- 3)))
                       ))
              ;;TODO: throw out the small ones
-             (set! good (cons c good))))))
+             (set! good (cons c good)))))
 
 
-(define* (convert) 
+(define* (convert)
   (begin
     (define out nil)
     (for c in good :
@@ -390,22 +377,14 @@
                                (list
                                 ;;(- (y-coor c)) ;;refect 90deg
                                 ;;(x-coor c)
-                                
                                 (- (x-coor c))
                                 (y-coor c)
-                                
                                 0)
                                (circle-color c)
-                               9 
+                               9
                                (reflectiveness c))
                          out)))
     out))
-
-(define (reverse lst)
-  (define newlist nil)
-  (for i in lst :
-       (set! newlist (cons i newlist)))
-  newlist)
 
 
 
@@ -464,8 +443,10 @@
           (begin
             (define light (car lights-list))
             (define light-vector (a-minus-bk (cadr light) intersection 1))
+            (print (cdr light))
             (define k (dot-product normal light-vector))
             (define m (a-minus-bk light-vector normal (/ (* 2 k) n)))
+            (define min-dist canv-size)
             (define illumination (+ illumination
                                     (*
                                      (if (number? (closest-intersection intersection light-vector (/ 1 canv-size) 1)) 1 0)
@@ -545,7 +526,7 @@
                                                 (/ y-coor canv-size) 1)
                                           1
                                           canv-size
-                                          3 ;reflection depth
+                                          reflection-depth
                                           ))
                            results))
           (list->vector results)))
@@ -556,9 +537,9 @@
             (queue-put results-Q 'done)
             0)
           (let ((y-coor (queue-get work-Q)))
-            (queue-put results-Q (vector y-coor (calc-line (- half) y-coor nil))) 
+            (queue-put results-Q (vector y-coor (calc-line (- half) y-coor nil)))
             (worker-iter))))
-    
+
     (worker-iter)))
 
 (define completed-lines 0)
@@ -570,7 +551,7 @@
     (define results-Q (queue)) ;; used to get color vectors from the workers
     (define work-Q (queue))  ;; used to send y-coordinates to the workers
     (define finished 0)
-    
+
     (define (spawn-workers num)
       (if (= num 0)
           nil
@@ -585,7 +566,7 @@
             (queue-put work-Q top)
             (init-work-Q (- top dot-size) bottom))))
     (init-work-Q y-top y-bottom)
-    
+
     (define workers (spawn-workers n-processors))
     (map async-start workers)
 
@@ -597,7 +578,7 @@
           nil
           (begin
             (define results (queue-get results-Q))
-            
+
             (if (equal? results 'done)
                 (begin
                   (set! finished (+ finished 1))
@@ -605,14 +586,14 @@
 
                 (begin
                   (draw-points results)
-                  
+
                   (set! completed-lines (+ completed-lines dot-size))
                   (print (* (/ completed-lines canv-size) 100))
 
                   (get-draw-repeat))))))
-    
+
     (get-draw-repeat)))
-    
+
 (define* (draw-points colors)
   ;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
@@ -663,14 +644,12 @@
 ;;NOTE: (exitonclick) commented out just for testing
 (define (normal-draw)
   (speed 0)
-  (penup)
   (pensize dot-size)
   (if basic nil (find-spheres))
   (draw-y half (- half)) ;(exitonclick)
   )
 
 (define (fast-draw) (speed 0)
-  (penup)
   (pensize dot-size)
   (setheading 90)
   (if basic nil (find-spheres))
