@@ -1,5 +1,5 @@
-(define canv-size 300)
-(define dot-size 5)
+(define canv-size 900)
+(define dot-size 1)
 (define n-processors 16) ;; must be >= 1
 
 ;;run times for 4 spheres:
@@ -299,7 +299,6 @@
           (list (list c1 c2 c3) (list c1 c2 c4) (list c1 c3 c4) (list c2 c3 c4)) ;;lists of tangent circles
           0)
 
-    (print "filtering good spheres...")
     (filter-circles)
     (set! spheres (convert))
     (print (list 'rendering (length spheres) 'spheres))
