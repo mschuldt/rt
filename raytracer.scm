@@ -24,7 +24,7 @@
     (define camera (list 0 1 0)))
 
 (define reflection-depth 2)
-
+(define reflection 5) ;;sphere reflection
 (define ambient-light 2)
 
 (define circle-depth 13) ;;below level 13 there are no more circles of radius > 0.3
@@ -270,10 +270,10 @@
   (find-iter circles nil))
 
 (define* (find-spheres)
-  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) 5 ))
-        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 5))
-        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 5))
-        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) 5)))
+  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) reflection ))
+        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflection))
+        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflection))
+        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) reflection)))
     (print "finding spheres...")
     (define (find circles tangencies level)
       (if (< level circle-depth)
@@ -335,8 +335,8 @@
                     (/ 1 k4)))
 
     (define new (if (> (magnitude z4) (magnitude z42))
-                    (make-circle z4 (/ 1 k4) (get-color level) 5)
-                    (make-circle z42 (/ 1 k4) (get-color level) 5)))
+                    (make-circle z4 (/ 1 k4) (get-color level) reflection)
+                    (make-circle z42 (/ 1 k4) (get-color level) reflection)))
 
     ;;throw out circles that are to far from the origin
     ;;or have a radius that is too small
@@ -353,7 +353,7 @@
 
 
 
-(define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) 7)))
+(define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) reflection)))
 
 (define* (filter-circles)
     (for c in circles :
