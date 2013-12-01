@@ -1,6 +1,6 @@
 (define canv-size 300)
 (define dot-size 5)
-(define n-processors 8) ;; must be >= 1
+(define n-processors 16) ;; must be >= 1
 
 ;;run times for 4 spheres:
 ;;200/10 (run time: 4.971529722213745 seconds)
@@ -24,7 +24,7 @@
     (define camera (list 0 1 0)))
 
 (define reflection-depth 2)
-(define reflection 5) ;;sphere reflection
+(define reflectance 5) ;;sphere reflection
 (define ambient-light 2)
 
 (define circle-depth 13) ;;below level 13 there are no more circles of radius > 0.3
@@ -44,19 +44,22 @@
 ;; Calling other substitions is OK
 ;; but recursion or mutual recursion is not
 ;;
+;;
 ;; Example:
 ;;  with substitution definition:
-;;       '((set-color colors) (color (in-255 (car colors))
-;;                            (in-255 (cadr colors))
-;;                            (in-255 (caddr colors))))
+;;     ((dot-product a b)
+;;      (+
+;;       (* (car a) (car b))
+;;       (* (cadr a) (cadr b))
+;;       (* (caddr a) (caddr b))))
 ;;
 ;; the code:
-;;   (set-color red)
+;;   (dot-product a b)
 ;;
-;; will be expanded as:
-;;   (color (min 255 (car red))
-;;          (min 255 (car (cdr red)))
-;;          (min 255 (car (cdr (cdr red)))))
+;; will be replaced with:
+;;  (+ (* (car a) (car b))
+;;     (* (car (cdr a)) (car (cdr b)))
+;;     (* (car (cdr (cdr a))) (car (cdr (cdr b)))))
 ;;
 ;;
 ;; Substitutions are only expanded with macros `define*' and `mu*'
@@ -67,11 +70,9 @@
         '((caddr x) (car (cdr (cdr x))))
         '((cadddr x) (caddr (cdr x)))
         '((square x) (* x x))
-        (list  'half (/ canv-size 2))
+        (list 'half (/ canv-size 2))
         '((in-255 value) (min 255 value))
-        '((set-color colors) (color (in-255 (car colors))
-                                    (in-255 (cadr colors))
-                                    (in-255 (caddr colors))))
+        
         '((dot-product a b) ;for some reason works faster than tail recursive implementation
           (+
            (* (car a) (car b))
@@ -84,30 +85,42 @@
            (- (cadr a) (* (cadr b) k))
            (- (caddr a) (* (caddr b) k))))
 
-        ;;circles
-
-
-        '((curvature c) (/ 1 (radius c)))
-        '((make-circle center radius color reflection)
-          (list radius center color reflection))
-        ;;complex numbers
-        '((complex real imag)
-          (list real imag))
-        '((real z) (car z))
-        '((imag z) (cadr z))
-        '((magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
-
-        '((abs n)
-          (if (< n 0) (- n) n))
-
         ))
+
+;;the functions for calculating sphere position
+;; are not inlined because doing so takes more time
+;; then is saved during calculations
+;; (2.22 additional seconds to expand for a speed up 
+;;  of only 1.14 seconds (this is important!))
+
+(define (radius c) (car c)) ;;conflict
 
 (define (center c) (cadr c))
 (define (x-coor c) (car (center c)))
 (define (y-coor c) (cadr (center c)))
 
 
-(define (radius c) (car c)) ;;conflict
+(define (curvature c) (/ 1 (radius c)))
+(define (make-circle center radius color reflection)
+  (list radius center color reflection))
+
+
+;;complex numbers
+(define (complex real imag)
+  (list real imag))
+(define (real z) (car z))
+(define (imag z) (cadr z))
+(define (magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
+
+(define (abs n)
+  (if (< n 0) (- n) n))
+
+
+(define (set-color colors) (color (in-255 (car colors))
+                                  (in-255 (cadr colors))
+                                  (in-255 (caddr colors))))
+
+
 
 (define-macro (for var in lst : code)
   ;;This is why lisp is amazing!
@@ -270,10 +283,10 @@
   (find-iter circles nil))
 
 (define* (find-spheres)
-  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) reflection ))
-        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflection))
-        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflection))
-        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) reflection)))
+  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) reflectance ))
+        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflectance))
+        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflectance))
+        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) reflectance)))
     (print "finding spheres...")
     (define (find circles tangencies level)
       (if (< level circle-depth)
@@ -335,8 +348,8 @@
                     (/ 1 k4)))
 
     (define new (if (> (magnitude z4) (magnitude z42))
-                    (make-circle z4 (/ 1 k4) (get-color level) reflection)
-                    (make-circle z42 (/ 1 k4) (get-color level) reflection)))
+                    (make-circle z4 (/ 1 k4) (get-color level) reflectance)
+                    (make-circle z42 (/ 1 k4) (get-color level) reflectance)))
 
     ;;throw out circles that are to far from the origin
     ;;or have a radius that is too small
@@ -353,7 +366,7 @@
 
 
 
-(define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) reflection)))
+(define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) reflectance)))
 
 (define* (filter-circles)
     (for c in circles :
