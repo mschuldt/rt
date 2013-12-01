@@ -1,5 +1,5 @@
-(define canv-size 100)
-(define dot-size 1)
+(define canv-size 300)
+(define dot-size 5)
 (define n-processors 8) ;; must be >= 1
 
 ;;run times for 4 spheres:
@@ -12,10 +12,11 @@
 (define basic #f) ;;set to true to render the basic 4 sphere scene
 
 (define lights '((10 (0 0 -50))
-                 (10 (0 0 -20))))
+	(10 (0 0 -20))
+                 ))
 
 (if basic
-    (define lights (list (list 8 (list 2 2 0))))
+    (define lights (list (list 10 (list 2 2 0))))
     )
 
 (define camera (list -15 5 -80))
@@ -167,7 +168,6 @@
        (set! newlist (cons i newlist)))
   newlist)
 
-
 (define (make-substitutions subs form)
   (if (and (list? form)
 	   (> (length form) 0))
@@ -270,10 +270,10 @@
   (find-iter circles nil))
 
 (define* (find-spheres)
-  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) 7 ))
-        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 7))
-        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 7))
-        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) 7)))
+  (let ((c1 (make-circle (list 0 (/ (* 250 (sqrt 3)) 3)) 125 (car color-list) 5 ))
+        (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 5))
+        (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) 5))
+        (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) 5)))
     (print "finding spheres...")
     (define (find circles tangencies level)
       (if (< level circle-depth)
@@ -335,8 +335,8 @@
                     (/ 1 k4)))
 
     (define new (if (> (magnitude z4) (magnitude z42))
-                    (make-circle z4 (/ 1 k4) (get-color level) 7)
-                    (make-circle z42 (/ 1 k4) (get-color level) 7)))
+                    (make-circle z4 (/ 1 k4) (get-color level) 5)
+                    (make-circle z42 (/ 1 k4) (get-color level) 5)))
 
     ;;throw out circles that are to far from the origin
     ;;or have a radius that is too small
@@ -394,24 +394,24 @@
 (define spheres (list
                  (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
                  (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
-                 (list 1 (list -2  1 4)  (list 0 9 0)  9  4)  ;; Green sphere
-                 (list 1 (list 2  1 4)  (list 0 0 9)  canv-size  5)   ;; Blue sphere
+                 (list 1 (list -2  1 4)  (list 0 9 0)  4  7)  ;; Green sphere
+                 (list 1 (list 2 1 4)  (list 0 0 9)  canv-size  7)   ;; Blue sphere
                  ))
 
 
 (define half (/ canv-size 2))
 
-(define closest-intersection (mu* (source direction t_min t_max) ; MU Procedure I LOVE YOU <3
-                                 (get-closest-sphere 0 spheres)))
+(define (closest-intersection source direction t_min t_max) ; MU Procedure I LOVE YOU <3
+    (get-closest-sphere 0 spheres canv-size))
 
 (define (sum-lists a b) ; have to be equal size
   (if (null? a) nil (cons (+ (car a) (car b)) (sum-lists (cdr a) (cdr b)))))
 
 
 (define get-closest-sphere
-  (mu* (v spheres-list)
+  (mu* (v spheres-list min-dist)
       (if (null? spheres-list)
-          v
+          (cons v min-dist) ; pass sphere and min dist
           (begin
             (define curr-sphere (car spheres-list))
             (define radius (car curr-sphere))
@@ -427,14 +427,14 @@
                   (if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
                       (begin
                         (define v curr-sphere)
-                        (set! min-dist sol1))) ;set is because mu
+                        (define min-dist sol1))) ;set is because mu
                   (define sol2 (/ (- b (- discr)) a))
                   (if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
                       (begin
                         (define v curr-sphere)
-                        (set! min-dist sol2))) ;set is because mu
+                        (define min-dist sol2))) ;set is because mu
                   ))
-            (get-closest-sphere v (cdr spheres-list))))))
+            (get-closest-sphere v (cdr spheres-list) min-dist)))))
 
 (define get-illumination
   (mu* (lights-list illumination)
@@ -443,13 +443,11 @@
           (begin
             (define light (car lights-list))
             (define light-vector (a-minus-bk (cadr light) intersection 1))
-            (print (cdr light))
             (define k (dot-product normal light-vector))
             (define m (a-minus-bk light-vector normal (/ (* 2 k) n)))
-            (define min-dist canv-size)
             (define illumination (+ illumination
                                     (*
-                                     (if (number? (closest-intersection intersection light-vector (/ 1 canv-size) 1)) 1 0)
+                                     (if (number? (car (closest-intersection intersection light-vector (/ 1 canv-size) 1))) 1 0)
                                      (car light)
                                      (+
                                       (max 0 (/ k (sqrt (* (dot-product light-vector light-vector) n))))
@@ -464,8 +462,9 @@
 (define trace-ray-iter
   (mu* (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
        (begin
-         (define min-dist canv-size)
          (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
+         (define min-dist (cdr closest-sphere))
+         (define closest-sphere (car closest-sphere))
          (if (number? closest-sphere) ; if no intersection
              prev-color
              (begin
