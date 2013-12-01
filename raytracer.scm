@@ -1,6 +1,6 @@
 (define canv-size 300)
 (define dot-size 5)
-(define n-processors 16) ;; must be >= 1
+(define n-processors 8) ;; must be >= 1
 
 ;;run times for 4 spheres:
 ;;200/10 (run time: 4.971529722213745 seconds)
@@ -72,7 +72,7 @@
         '((square x) (* x x))
         (list 'half (/ canv-size 2))
         '((in-255 value) (min 255 value))
-        
+
         '((dot-product a b) ;for some reason works faster than tail recursive implementation
           (+
            (* (car a) (car b))
@@ -90,7 +90,7 @@
 ;;the functions for calculating sphere position
 ;; are not inlined because doing so takes more time
 ;; then is saved during calculations
-;; (2.22 additional seconds to expand for a speed up 
+;; (2.22 additional seconds to expand for a speed up
 ;;  of only 1.14 seconds (this is important!))
 
 (define (radius c) (car c)) ;;conflict
@@ -402,8 +402,15 @@
 
 
 ;;end sphere generation code
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;; TINY TAIL RECURSIVE RAY TRACER ;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; basic composition list
 (define spheres (list
                  (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
                  (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
@@ -414,7 +421,7 @@
 
 (define half (/ canv-size 2))
 
-(define (closest-intersection source direction t_min t_max) ; MU Procedure I LOVE YOU <3
+(define (closest-intersection source direction t_min t_max)
     (get-closest-sphere 0 spheres canv-size))
 
 (define (sum-lists a b) ; have to be equal size
@@ -440,12 +447,12 @@
                   (if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
                       (begin
                         (define v curr-sphere)
-                        (define min-dist sol1))) ;set is because mu
+                        (define min-dist sol1)))
                   (define sol2 (/ (- b (- discr)) a))
                   (if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
                       (begin
                         (define v curr-sphere)
-                        (define min-dist sol2))) ;set is because mu
+                        (define min-dist sol2)))
                   ))
             (get-closest-sphere v (cdr spheres-list) min-dist)))))
 
@@ -471,10 +478,11 @@
                                               (cadr closest-sphere))))))) ;; get specular_exponent 4th element
             (get-illumination (cdr lights-list) illumination)))))
 
+(define number-of-rays 0)
 
-(define trace-ray-iter
-  (mu* (source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
+(define (trace-ray-iter source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
        (begin
+       	 (set! number-of-rays (+ number-of-rays 1))
          (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
          (define min-dist (cdr closest-sphere))
          (define closest-sphere (car closest-sphere))
@@ -500,10 +508,12 @@
                       (- depth 1)
                       new-color
                       (* curr-ref prev-ref)))
-                   (sum-lists new-color prev-color)))))))
+                   (sum-lists new-color prev-color))))))
 
-(define (trace-ray source direction t_min t_max depth)
-  (trace-ray-iter source direction t_min t_max depth (list 0 0 0) 1))
+(define (trace-ray direction)
+  (trace-ray-iter camera direction 1 canv-size reflection-depth (list 0 0 0) 1))
+
+;;;;;;;;;;;;;;;;;;;; end T.T.R.T.T ;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -533,13 +543,8 @@
           (calc-line (+ x-left dot-size)
                      y-coor
                      (cons (list->vector (trace-ray
-                                          camera
                                           (list (/ x-left canv-size)
-                                                (/ y-coor canv-size) 1)
-                                          1
-                                          canv-size
-                                          reflection-depth
-                                          ))
+                                                (/ y-coor canv-size) 1)))
                            results))
           (list->vector results)))
 
@@ -643,12 +648,7 @@
                               (if (< x-left x-right)
                                   (begin
                                     (define new-color (trace-ray
-                                                       camera
-                                                       (list (/ x-left canv-size) (/ y-top canv-size) 1)
-                                                       1
-                                                       canv-size
-                                                       reflection-depth
-                                                       ))
+                                                       (list (/ x-left canv-size) (/ y-top canv-size) 1)))
                                     (set-color new-color)
                                     (fd dot-size)
                                     (draw-x (+ x-left dot-size) x-right)))))
@@ -687,3 +687,4 @@
   (time-eval (draw)))
 
 (print (list 'expansion 'time: (- (time) load-start-time) 'seconds))
+(print (list 'number 'of 'rays 'shot: number-of-rays))
