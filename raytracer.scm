@@ -1,11 +1,6 @@
 (define canv-size 300)
-<<<<<<< HEAD
-(define dot-size 5)
-(define n-processors 8) ;; must be >= 1
-=======
 (define dot-size 10)
 (define n-processors 16) ;; must be >= 1
->>>>>>> d1df590c864b51bdd5e7f76248454d9e67afb841
 
 ;;run times for 4 spheres:
 ;;200/10 (run time: 4.971529722213745 seconds)
