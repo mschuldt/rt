@@ -11,7 +11,7 @@
 (define demo #f) ;;set to true to render a simple (fast) 4 sphere scene
 
 (define lights '((10 (0 0 -50))
-	(10 (0 0 -20))
+                 (10 (0 0 -20))
                  ))
 
 (define camera (list -15 5 -80))
@@ -31,9 +31,9 @@
 ;; Similar to c preprocessor macros.
 ;; All substitutions are defined in the list `substitutions'
 ;; format: (symbol value)
-;;          replace 'sym' with 'value'
+;;          replace 'symbol' with 'value'
 ;;    OR:  ((name args) def)
-;;         (replace call to 'name' with 'def', substituting 'args'
+;;         replace call to 'name' with 'def', substituting 'args'
 ;;
 ;; Calling other substitions is OK
 ;; but recursion or mutual recursion is not
@@ -57,7 +57,6 @@
 ;;
 ;;
 ;; Substitutions are only expanded with macros `define*' and `mu*'
-
 
 (define substitutions
   (list '((cadr x) (car (cdr x)))
@@ -87,19 +86,16 @@
 ;; (2.22 additional seconds to expand for a speed up
 ;;  of only 1.14 seconds (this is important!))
 
-(define (radius c) (car c)) ;;conflict
-
+;;circle abstraction
+(define (make-circle center radius color reflection)
+  (list radius center color reflection))
+(define (radius c) (car c))
 (define (center c) (cadr c))
 (define (x-coor c) (car (center c)))
 (define (y-coor c) (cadr (center c)))
-
-
 (define (curvature c) (/ 1 (radius c)))
-(define (make-circle center radius color reflection)
-  (list radius center color reflection))
 
-
-;;complex numbers
+;;complex number abstraction
 (define (complex real imag)
   (list real imag))
 (define (real z) (car z))
@@ -109,11 +105,9 @@
 (define (abs n)
   (if (< n 0) (- n) n))
 
-
 (define (set-color colors) (color (in-255 (car colors))
                                   (in-255 (cadr colors))
                                   (in-255 (caddr colors))))
-
 
 
 (define-macro (for var in lst : code)
@@ -202,6 +196,7 @@
 
 (print "loading and expanding...")
 (define load-start-time (time))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
 
@@ -210,8 +205,6 @@
 ;;sphere generation
 
 (define circles nil)
-
-
 (define (circle-color c) (car (cdr (cdr c))))
 (define (reflectiveness c) (car (cdr (cdr (cdr c)))))
 
@@ -222,7 +215,7 @@
 ;; fun fact:
 ;; if you do make substitutions for c+ and c*,
 ;; it will take 1 hour 45min to finish
-;; the the resulting code will have 855766 tokens
+;; and the resulting code will have 855766 tokens
 (define* (c+ z1 z2)
   (complex (+ (real z1) (real z2))
            (+ (imag z1) (imag z2))))
@@ -232,7 +225,6 @@
       (complex (* (real z1) z2) (* (imag z1) z2))
       (complex (- (* (real z1) (real z2)) (* (imag z1) (imag z2)))
                (+ (* (real z1) (imag z2)) (* (imag z1) (real z2))))))
-
 
 (define* (c-sqrt z)
   (let ((x (real z))
@@ -260,7 +252,6 @@
                                              (cons (list c2 c3 new)
                                                    sofar)))))))
     (find circles nil)))
-
 
 (define (get-color level)
   (nth color-list (modulo level color-length)))
@@ -355,9 +346,6 @@
           (list c1 c2 c3 new)))))
 
 
-
-
-
 (define good (list (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 '(8.0 2.0 10.0) reflectance)))
 
 (define* (filter-circles)
@@ -370,9 +358,7 @@
                            (< (y-coor c) 0) ;; that are close to the the x-axes
                            (> (y-coor c) (- 3)))
                       ))
-             ;;TODO: throw out the small ones
              (set! good (cons c good)))))
-
 
 (define* (convert)
   (begin
@@ -382,7 +368,7 @@
                                (list
                                 ;;(- (y-coor c)) ;;refect 90deg
                                 ;;(x-coor c)
-                                (- (x-coor c))
+                                (- (x-coor c)) ;;reflect about y-axis
                                 (y-coor c)
                                 0)
                                (circle-color c)
@@ -390,7 +376,6 @@
                                (reflectiveness c))
                          out)))
     out))
-
 
 
 ;;end sphere generation code
@@ -510,7 +495,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;multiprocessing
+;;Multiprocessing!
+;;
+;;a non-standard scheme extension.
+;;also uses vectors and (non-standard) queues.
+;;to bypass all this non-standard code just set n-processors to 1
+;;but if you do that you will suffer.
 
 (define (range from to step)
   ;;return a list of all multiples of STEP in the range [FROM, TO], inclusive
@@ -527,8 +517,10 @@
               step
               nil))
 
-
 (define* (worker work-Q results-Q)
+  ;; Each worker repeatedly gets a line number from work-Q, calculates all
+  ;; pixel colors for that line and then puts the array of color
+  ;; values in results-Q to be drawn by the main proces.
   (begin
     (define (calc-line x-left y-coor results)
       (if (< x-left half)
@@ -553,9 +545,7 @@
 
 (define completed-lines 0)
 (define* (async-draw-y y-top y-bottom)
-  ;;this version starts processing the next batch of lines
-  ;;as it draws the results from the previous batch
-  ;;=> This is faster then normal but still slower then doing  all calculations first
+  ;; creates a bunch of processes and communicates to them via Queues.
   (begin
     (define results-Q (queue)) ;; used to get color vectors from the workers
     (define work-Q (queue))  ;; used to send y-coordinates to the workers
@@ -604,7 +594,6 @@
     (get-draw-repeat)))
 
 (define* (draw-points colors)
-  ;; Draws points with lines
   ;;COLORS is a vector with format: [y-coor colors]
   ;;Where 'y-coor' is the y-coordinate of the line
   ;;     and 'colors' is a vector of rgb color values (reversed)
@@ -650,12 +639,12 @@
   (setheading 90)
 
   (find-spheres)
-  
+
   (if demo
       (let ((keepers nil))
-        (for s in spheres : (if (> (car s) 4) (set! keepers (cons s keepers))))             
+        (for s in spheres : (if (> (car s) 4) (set! keepers (cons s keepers))))
         (set! spheres keepers)))
-  
+
   (if (= n-processors 1)
       (draw-y half (- half)) ;;avoid all multiprocessing code
       (async-draw-y half (- half)))
@@ -664,7 +653,7 @@
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; testing functions
+;;; functions for testing
 
 (define-macro (time-eval code)
   (list 'let '((begin-time (time)))
