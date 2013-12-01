@@ -1,5 +1,5 @@
-(define canv-size 900)
-(define dot-size 1)
+(define canv-size 300)
+(define dot-size 10)
 (define n-processors 16) ;; must be >= 1
 
 ;;run times for 4 spheres:
@@ -8,20 +8,14 @@
 ;;;run times for 64 spheres:
 ;; 200/10 (run time: 2 minutes 7.498538970947266 seconds)
 
-
-(define basic #f) ;;set to true to render the basic 4 sphere scene
+(define demo #f) ;;set to true to render a simple (fast) 4 sphere scene
 
 (define lights '((10 (0 0 -50))
 	(10 (0 0 -20))
                  ))
 
-(if basic
-    (define lights (list (list 10 (list 2 2 0))))
-    )
-
 (define camera (list -15 5 -80))
-(if basic
-    (define camera (list 0 1 0)))
+
 
 (define reflection-depth 2)
 (define reflectance 5) ;;sphere reflection
@@ -287,7 +281,7 @@
         (c2 (make-circle (list 125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflectance))
         (c3 (make-circle (list -125 (- (/ (* 125 (sqrt 3)) 3))) 125 (car color-list) reflectance))
         (c4 (make-circle '(0 0) (- (+ 125 (/ (* 250 (sqrt 3)) 3))) (car color-list) reflectance)))
-    (print "finding spheres...")
+    (print "calculating sphere positions...")
     (define (find circles tangencies level)
       (if (< level circle-depth)
           (let ((new-circles (find-tangent-circles tangencies level)))
@@ -301,8 +295,7 @@
 
     (filter-circles)
     (set! spheres (convert))
-    (print (list 'rendering (length spheres) 'spheres))
-    ))
+    (if demo nil (print (list 'rendering (length spheres) 'spheres)))))
 
 (define* (nth lst i)
   (if (= i 0)
@@ -652,25 +645,24 @@
                                     (fd dot-size)
                                     (draw-x (+ x-left dot-size) x-right)))))
 
-;;NOTE: (exitonclick) commented out just for testing
-(define (normal-draw)
-  (speed 0)
-  (pensize dot-size)
-  (if basic nil (find-spheres))
-  (draw-y half (- half)) ;(exitonclick)
-  )
-
-(define (fast-draw) (speed 0)
+(define (draw) (speed 0)
   (pensize dot-size)
   (setheading 90)
-  (if basic nil (find-spheres))
-  (async-draw-y half (- half)) ;(exitonclick)
+
+  (find-spheres)
+  
+  (if demo
+      (let ((keepers nil))
+        (for s in spheres : (if (> (car s) 4) (set! keepers (cons s keepers))))             
+        (set! spheres keepers)))
+  
+  (if (= n-processors 1)
+      (draw-y half (- half)) ;;avoid all multiprocessing code
+      (async-draw-y half (- half)))
+  ;;(exitonclick)
+ ;;NOTE: (exitonclick) commented out just for testing
   )
 
-(define (draw)
-  (if (= n-processors 1)
-      (normal-draw)
-      (fast-draw)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; testing functions
 
