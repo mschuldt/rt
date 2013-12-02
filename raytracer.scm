@@ -1,5 +1,5 @@
 (define canv-size 300)
-(define dot-size 10)
+(define pen-size 10)
 (define n-processors 16) ;; must be >= 1
 
 ;;run times for 4 spheres:
@@ -105,9 +105,6 @@
 (define (real z) (car z))
 (define (imag z) (cadr z))
 (define (magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
-
-(define (abs n)
-  (if (< n 0) (- n) n))
 
 
 (define (set-color colors) (color (in-255 (car colors))
@@ -470,11 +467,8 @@
                                               (cadr closest-sphere))))))) ;; get specular_exponent 4th element
             (get-illumination (cdr lights-list) illumination)))))
 
-(define number-of-rays 0)
-
 (define (trace-ray-iter source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
        (begin
-       	 (set! number-of-rays (+ number-of-rays 1))
          (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
          (define min-dist (cdr closest-sphere))
          (define closest-sphere (car closest-sphere))
@@ -532,7 +526,7 @@
   (begin
     (define (calc-line x-left y-coor results)
       (if (< x-left half)
-          (calc-line (+ x-left dot-size)
+          (calc-line (+ x-left pen-size)
                      y-coor
                      (cons (list->vector (trace-ray
                                           (list (/ x-left canv-size)
@@ -573,7 +567,7 @@
           nil
           (begin
             (queue-put work-Q top)
-            (init-work-Q (- top dot-size) bottom))))
+            (init-work-Q (- top pen-size) bottom))))
     (init-work-Q y-top y-bottom)
 
     (define workers (spawn-workers n-processors))
@@ -596,7 +590,7 @@
                 (begin
                   (draw-points results)
 
-                  (set! completed-lines (+ completed-lines dot-size))
+                  (set! completed-lines (+ completed-lines pen-size))
                   (print (* (/ completed-lines canv-size) 100))
 
                   (get-draw-repeat))))))
@@ -618,7 +612,7 @@
                            (if (< index 0) nil
                                (begin (set-color
                                        (vector->list (vector-ref colors index)))
-                                      (fd dot-size)
+                                      (fd pen-size)
                                       (draw-point (- index 1))))))
     (draw-point (- (vector-length colors) 1))
     (update)))
@@ -634,7 +628,7 @@
         (pendown)
         (draw-x (- half) half)
         (penup)
-        (draw-y (- y-top dot-size) y-bottom))))
+        (draw-y (- y-top pen-size) y-bottom))))
 
 (define draw-x (mu* (x-left x-right)
                               (if (< x-left x-right)
@@ -642,20 +636,20 @@
                                     (define new-color (trace-ray
                                                        (list (/ x-left canv-size) (/ y-top canv-size) 1)))
                                     (set-color new-color)
-                                    (fd dot-size)
-                                    (draw-x (+ x-left dot-size) x-right)))))
+                                    (fd pen-size)
+                                    (draw-x (+ x-left pen-size) x-right)))))
 
 (define (draw) (speed 0)
-  (pensize dot-size)
+  (pensize pen-size)
   (setheading 90)
 
   (find-spheres)
-  
+
   (if demo
       (let ((keepers nil))
-        (for s in spheres : (if (> (car s) 4) (set! keepers (cons s keepers))))             
+        (for s in spheres : (if (> (car s) 4) (set! keepers (cons s keepers))))
         (set! spheres keepers)))
-  
+
   (if (= n-processors 1)
       (draw-y half (- half)) ;;avoid all multiprocessing code
       (async-draw-y half (- half)))
@@ -678,4 +672,3 @@
   (time-eval (draw)))
 
 (print (list 'expansion 'time: (- (time) load-start-time) 'seconds))
-(print (list 'number 'of 'rays 'shot: number-of-rays))
