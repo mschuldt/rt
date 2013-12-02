@@ -1,6 +1,10 @@
-(define canv-size 300)
-(define dot-size 10)
-(define n-processors 16) ;; must be >= 1
+(define canv-size 800) ;;submitted image was 800
+(define dot-size 1)
+(define n-processors 16) ;; must be >= 1.
+;; If set to a number greator then 1, this code will use a non-standard scheme multiprocessing extension
+;; Which you want! unless you hate yourself and like excessively slow programs.
+
+;;It took almost 17 hours to generate final image with on an i7-2600K CPU @ 3.40GHz (with 16 processes)
 
 ;;run times for 4 spheres:
 ;;200/10 (run time: 4.971529722213745 seconds)
@@ -14,15 +18,15 @@
                  (10 (0 0 -20))
                  ))
 
-(define camera (list -15 5 -80))
+(define camera (list -16.5 5.5 -80))
 
-
-(define reflection-depth 2)
+(define reflection-depth 3)
 (define reflectance 5) ;;sphere reflection
 (define ambient-light 2)
 
 (define circle-depth 13) ;;below level 13 there are no more circles of radius > 0.3
 (define color-list '((2.0 8.0 10.0) (6.0 10.0 4.0) (10.0 10.0 4.0) (10.0 6.0 2.0) (10.0 0.0 0.0) (9.3 2.5 0.0) (10.0 5.1 9.8) (1.3 5.4 1.3)))
+
 (define color-length (length color-list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,34 +84,8 @@
 
         ))
 
-;;the functions for calculating sphere position
-;; are not inlined because doing so takes more time
-;; then is saved during calculations
-;; (2.22 additional seconds to expand for a speed up
-;;  of only 1.14 seconds (this is important!))
-
-;;circle abstraction
-(define (make-circle center radius color reflection)
-  (list radius center color reflection))
-(define (radius c) (car c))
-(define (center c) (cadr c))
-(define (x-coor c) (car (center c)))
-(define (y-coor c) (cadr (center c)))
-(define (curvature c) (/ 1 (radius c)))
-
-;;complex number abstraction
-(define (complex real imag)
-  (list real imag))
-(define (real z) (car z))
-(define (imag z) (cadr z))
-(define (magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
-
 (define (abs n)
   (if (< n 0) (- n) n))
-
-(define (set-color colors) (color (in-255 (car colors))
-                                  (in-255 (cadr colors))
-                                  (in-255 (caddr colors))))
 
 
 (define-macro (for var in lst : code)
@@ -205,16 +183,35 @@
 ;;sphere generation
 
 (define circles nil)
-(define (circle-color c) (car (cdr (cdr c))))
-(define (reflectiveness c) (car (cdr (cdr (cdr c)))))
 
+;; these function are not inlined because 
+;; doing so takes more time then is saved
+;; during calculations.
+;; (2.22 additional seconds to expand for a speed up
+;;  of only 1.14 seconds (this is important!))
+
+;;circle abstraction
 (define (make-circle center radius color reflection)
-  (list radius center  color reflection))
+  (list radius center color reflection))
+(define (radius c) (car c))
+(define (center c) (cadr c))
+(define (x-coor c) (car (center c)))
+(define (y-coor c) (cadr (center c)))
+(define (curvature c) (/ 1 (radius c)))
+(define (circle-color c) (caddr c))
+(define (reflectiveness c) (cadddr c))
+
+;;complex number abstraction
+(define (complex real imag)
+  (list real imag))
+(define (real z) (car z))
+(define (imag z) (cadr z))
+(define (magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
 
 
 ;; fun fact:
-;; if you do make substitutions for c+ and c*,
-;; it will take 1 hour 45min to finish
+;; if you do define  c+ and c* as substitutions,
+;; it will take 1 hour 45min to finish the expansion
 ;; and the resulting code will have 855766 tokens
 (define* (c+ z1 z2)
   (complex (+ (real z1) (real z2))
@@ -615,6 +612,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (set-color colors) (color (in-255 (car colors))
+                                  (in-255 (cadr colors))
+                                  (in-255 (caddr colors))))
 
 (define* (draw-y y-top y-bottom)
   (if (> y-top y-bottom)
