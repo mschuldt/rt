@@ -1,27 +1,49 @@
-(define canv-size 200) ;;submitted image was 800
-(define pen-size 2)
-(define n-processors 16) ;; must be >= 1.
-;; If set to a number greator then 1, this code will use a non-standard scheme multiprocessing extension
+;;; Scheme Recursive Art Contest Entry
+;;;
+;;; Title: Tail Recursive Ray Tracer (T.R.R.T)
+;;;
+;;; Description:
+;;;		Recursive raytracer traces
+;;;		Recursively stacked spheres
+;;;		Everything recursive!
+
+
+;; Features:
+;; - Raytracing of colored spheres
+;; - 3D coordinate system
+;; - Point lighting system
+;; - Reflection and shadows with adjustable depth
+;; - Multiprocessing!!
+;; - Pixelisation and adjustable output image size
+;; - Tail recursive
+;;
+;; Inspired by http://www.gabrielgambetta.com/tiny_raytracer.html
+
+(define canv-size 200) ;;set output image size
+(define pen-size 2) ;; set pixel size.
+(define n-processors 16) ;; must be >= 1. For the best speed set to (2 * number of cores).
+;; If set to a number greater then 1, this code will use a non-standard scheme multiprocessing extension
 ;; Which you want! unless you hate yourself and like excessively slow programs.
 
-;;It took over 17.6 hours to render the final image with on an i7-2600K CPU @ 3.40GHz (with 16 processes)
+;; It took over 17.6 hours to render the final image 800x800px with pen-size 1
+;; on an i7-2600K CPU @ 3.40GHz (with 16 processes)
+;; Note: pen-size 1 on Mac OSX would result in small artifacts because Mac can't
+;; draw straight lines precisely...
 
 (define demo #f) ;;set to true to render a simple (fast) 4 sphere scene
 ;;It takes 1min to render the demo with canv-size 200 and pen-size 2 (with i7)
 
 (define lights '((10 (0 0 -50))
-                 (10 (0 0 -20))
-                 ))
+                 (10 (0 0 -20))))
 
 (define camera (list -16.5 5.5 -80))
 
 (define reflection-depth 3)
-(define reflectance 5) ;;sphere reflection
+(define reflectance 5) ;;default sphere reflection. can be set individually instead.
 (define ambient-light 2)
 
 (define circle-depth 13) ;;below level 13 there are no more circles of radius > 0.3
 (define color-list '((2.0 8.0 10.0) (6.0 10.0 4.0) (10.0 10.0 4.0) (10.0 6.0 2.0) (10.0 0.0 0.0) (9.3 2.5 0.0) (10.0 5.1 9.8) (1.3 5.4 1.3)))
-
 (define color-length (length color-list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -162,17 +184,13 @@
 (print "loading and expanding...")
 (define load-start-time (time))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Sphere: radius (cx  cy  cz) R  G  B specular_exponent reflectiveness
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; sphere positioning
-;;;; 
+;;;;
 
 (define circles nil)
 
-;; these function are not inlined because 
+;; these function are not inlined because
 ;; doing so takes more time then is saved
 ;; during calculations.
 ;; (2.22 additional seconds to expand for a speed up
@@ -195,9 +213,6 @@
 (define (real z) (car z))
 (define (imag z) (cadr z))
 (define (magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
-
-(define (abs n)
-  (if (< n 0) (- n) n))
 
 (define spheres nil)
 
@@ -223,7 +238,7 @@
              (* (if (= y 0) 1 (/ y (abs y))) (sqrt (/ (- r x) 2))))))
 
 
-;;return list of all triples of mutually tangental circles
+;;return list of all triples of mutually tangential circles
 (define* (find-new-tangencies circles)
   ;;circles is a list of lists of 3 circles with format (c1 c2 c3 new)
   ;;where 'new' is the newly calculated circle that is mutually
@@ -349,6 +364,10 @@
                       ))
              (set! good (cons c good)))))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Sphere format: radius (cx  cy  cz) (R  G  B) specular_exponent reflectiveness
 (define* (convert)
   (begin
     (define out nil)
@@ -371,12 +390,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;; TINY TAIL RECURSIVE RAY TRACER ;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; RAYTRACING
 
 
-(define* (dot-product a b) ;for some reason works faster than tail recursive implementation
+(define* (dot-product a b)
   (+
    (* (car a) (car b))
    (* (cadr a) (cadr b))
@@ -388,24 +405,23 @@
    (- (cadr a) (* (cadr b) k))
    (- (caddr a) (* (caddr b) k))))
 
-
-(define half (/ canv-size 2))
-
+;; returns closest sphere (without radius) which a ray hits and magnitude of distance to it
+;; returns zero if no intersection
 (define (closest-intersection source direction t_min t_max)
     (get-closest-sphere 0 spheres canv-size))
 
 (define (sum-lists a b) ; have to be equal size
   (if (null? a) nil (cons (+ (car a) (car b)) (sum-lists (cdr a) (cdr b)))))
 
-
 (define get-closest-sphere
-  (mu* (v spheres-list min-dist)
+  (mu* (v spheres-list distance)
       (if (null? spheres-list)
-          (cons v min-dist) ; pass sphere and min dist
+          (cons v distance) ; if out of spheres, pass closest sphere and magnitude
           (begin
             (define curr-sphere (car spheres-list))
             (define radius (car curr-sphere))
             (define curr-sphere (cdr curr-sphere))
+            ;; solve quadratic equation for curr-sphere to fine intersects
             (define j (a-minus-bk source (car curr-sphere) 1))
             (define a (* 2 (dot-product direction direction)))
             (define b (* -2 (dot-product j direction)))
@@ -414,18 +430,20 @@
                 (begin
                   (define discr (sqrt discr))
                   (define sol1 (/ (- b discr) a))
-                  (if (and (< t_min sol1) (< sol1 t_max) (< sol1 min-dist))
+                  (if (and (< t_min sol1) (< sol1 t_max) (< sol1 distance))
                       (begin
                         (define v curr-sphere)
-                        (define min-dist sol1)))
+                        (define distance sol1)))
                   (define sol2 (/ (- b (- discr)) a))
-                  (if (and (< t_min sol2) (< sol2 t_max) (< sol2 min-dist))
+                  (if (and (< t_min sol2) (< sol2 t_max) (< sol2 distance))
                       (begin
                         (define v curr-sphere)
-                        (define min-dist sol2)))
+                        (define distance sol2)))
                   ))
-            (get-closest-sphere v (cdr spheres-list) min-dist)))))
+            (get-closest-sphere v (cdr spheres-list) distance)))))
 
+;; Mu <3 procedure to calculate illumination based on all light for a specific point
+;; trace-ray-iter is parent
 (define get-illumination
   (mu* (lights-list illumination)
       (if (null? lights-list)
@@ -448,15 +466,16 @@
                                               (cadr closest-sphere))))))) ;; get specular_exponent 4th element
             (get-illumination (cdr lights-list) illumination)))))
 
-(define (trace-ray-iter source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
+; where magic happens ;)
+(define (trace-ray-iter source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive hell yeah!!!
        (begin
          (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
-         (define min-dist (cdr closest-sphere))
+         (define distance (cdr closest-sphere))
          (define closest-sphere (car closest-sphere))
          (if (number? closest-sphere) ; if no intersection
-             prev-color
+             prev-color ; return whatever color was computed before, default is black (no intersections at all)
              (begin
-               (define intersection (a-minus-bk source direction (- min-dist)))
+               (define intersection (a-minus-bk source direction (- distance)))
                (define normal (a-minus-bk intersection (car closest-sphere) 1))
                (define closest-sphere (cdr closest-sphere)) ;; get to color
                (define n (dot-product normal normal))
@@ -467,6 +486,7 @@
                    (begin
                      (define new-color (map (lambda (channel) (* channel (- 1 curr-ref))) new-color))
                      (define new-color (sum-lists new-color prev-color))
+                     ;; otherwise, shoot another ray from intersection relative to normal to find reflections
                      (trace-ray-iter
                       intersection
                       (a-minus-bk direction normal (/ (* 2 (dot-product normal direction)) n))
@@ -480,7 +500,7 @@
 (define (trace-ray direction)
   (trace-ray-iter camera direction 1 canv-size reflection-depth (list 0 0 0) 1))
 
-;;;;;;;;;;;;;;;;;;;; end T.T.R.R.T ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; end raytracing ;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -606,6 +626,8 @@
 ;;end multiprocessing code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Drawing procedures
 (define (set-color colors) (color (in-255 (car colors))
                                   (in-255 (cadr colors))
                                   (in-255 (caddr colors))))
@@ -642,9 +664,8 @@
   (if (= n-processors 1)
       (draw-y half (- half)) ;;avoid all multiprocessing code
       (async-draw-y half (- half)))
-  ;;(exitonclick)
- ;;NOTE: (exitonclick) commented out just for testing
-  )
+  (exitonclick)
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; functions for testing
@@ -661,3 +682,8 @@
   (time-eval (draw)))
 
 (print (list 'expansion 'time: (- (time) load-start-time) 'seconds))
+
+; Please leave this last line alone.  You may add additional procedures above
+; this line.  All Scheme tokens in this file (including the one below) count
+; toward the token limit.
+(draw)
