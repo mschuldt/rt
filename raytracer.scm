@@ -1,18 +1,13 @@
-(define canv-size 800) ;;submitted image was 800
-(define dot-size 1)
+(define canv-size 200) ;;submitted image was 800
+(define pen-size 2)
 (define n-processors 16) ;; must be >= 1.
 ;; If set to a number greator then 1, this code will use a non-standard scheme multiprocessing extension
 ;; Which you want! unless you hate yourself and like excessively slow programs.
 
-;;It took almost 17 hours to generate final image with on an i7-2600K CPU @ 3.40GHz (with 16 processes)
-
-;;run times for 4 spheres:
-;;200/10 (run time: 4.971529722213745 seconds)
-
-;;;run times for 64 spheres:
-;; 200/10 (run time: 2 minutes 7.498538970947266 seconds)
+;;It took over 17.6 hours to render the final image with on an i7-2600K CPU @ 3.40GHz (with 16 processes)
 
 (define demo #f) ;;set to true to render a simple (fast) 4 sphere scene
+;;It takes 1min to render the demo with canv-size 200 and pen-size 2 (with i7)
 
 (define lights '((10 (0 0 -50))
                  (10 (0 0 -20))
@@ -70,23 +65,15 @@
         (list 'half (/ canv-size 2))
         '((in-255 value) (min 255 value))
 
-        '((dot-product a b) ;for some reason works faster than tail recursive implementation
-          (+
-           (* (car a) (car b))
-           (* (cadr a) (cadr b))
-           (* (caddr a) (caddr b))))
-
-        '((a-minus-bk a b k)
-          (list
-           (- (car a) (* (car b) k))
-           (- (cadr a) (* (cadr b) k))
-           (- (caddr a) (* (caddr b) k))))
+        ;;you must be careful with the functions to be inlined,
+        ;;functions like 'dot-project' and 'a-minus-bk'
+        ;;seem like good candidates but doing so will
+        ;;cause the token count of some functions to increase 2-3 times
+        ;;upon expansion, ultimately slowing down the program
+        ;;instead of speeding it up. presumably due to the
+        ;;increased volume of code the system must move about
 
         ))
-
-(define (abs n)
-  (if (< n 0) (- n) n))
-
 
 (define-macro (for var in lst : code)
   ;;This is why lisp is amazing!
@@ -180,7 +167,8 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;sphere generation
+;;;; sphere positioning
+;;;; 
 
 (define circles nil)
 
@@ -208,6 +196,10 @@
 (define (imag z) (cadr z))
 (define (magnitude z) (sqrt (+ (* (real z) (real z)) (* (imag z) (imag z)))))
 
+(define (abs n)
+  (if (< n 0) (- n) n))
+
+(define spheres nil)
 
 ;; fun fact:
 ;; if you do define  c+ and c* as substitutions,
@@ -374,7 +366,6 @@
                          out)))
     out))
 
-
 ;;end sphere generation code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -384,13 +375,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; basic composition list
-(define spheres (list
-                 (list canv-size (list 0 (- canv-size) 0)  (list 9 9 0)  canv-size  2)  ;; Yellow sphere
-                 (list 1 (list 0  0 3)  (list 9 0 0)  canv-size  3)  ;; Red sphere
-                 (list 1 (list -2  1 4)  (list 0 9 0)  4  7)  ;; Green sphere
-                 (list 1 (list 2 1 4)  (list 0 0 9)  canv-size  7)   ;; Blue sphere
-                 ))
+
+(define* (dot-product a b) ;for some reason works faster than tail recursive implementation
+  (+
+   (* (car a) (car b))
+   (* (cadr a) (cadr b))
+   (* (caddr a) (caddr b))))
+
+(define* (a-minus-bk a b k)
+  (list
+   (- (car a) (* (car b) k))
+   (- (cadr a) (* (cadr b) k))
+   (- (caddr a) (* (caddr b) k))))
 
 
 (define half (/ canv-size 2))
@@ -452,11 +448,8 @@
                                               (cadr closest-sphere))))))) ;; get specular_exponent 4th element
             (get-illumination (cdr lights-list) illumination)))))
 
-(define number-of-rays 0)
-
 (define (trace-ray-iter source direction t_min t_max depth prev-color prev-ref) ;; tail-recursive fuck yeah!!!
        (begin
-       	 (set! number-of-rays (+ number-of-rays 1))
          (define closest-sphere (closest-intersection source direction t_min t_max)) ;; get sphere without radius
          (define min-dist (cdr closest-sphere))
          (define closest-sphere (car closest-sphere))
@@ -487,7 +480,7 @@
 (define (trace-ray direction)
   (trace-ray-iter camera direction 1 canv-size reflection-depth (list 0 0 0) 1))
 
-;;;;;;;;;;;;;;;;;;;; end T.T.R.T.T ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; end T.T.R.R.T ;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -499,20 +492,6 @@
 ;;to bypass all this non-standard code just set n-processors to 1
 ;;but if you do that you will suffer.
 
-(define (range from to step)
-  ;;return a list of all multiples of STEP in the range [FROM, TO], inclusive
-  ;;(range 1 5 1) => (1 2 3 4 5)
-  ;;(range 1 5 2) => (1 3 5)
-  (define (range-iter from to step accum)
-    (if (< to from)
-        accum
-        (range-iter from (- to step) step (cons to accum))))
-  (range-iter from
-              (if (= (modulo (- to from) step) 0)
-                  to
-                  (- to (modulo (- to from) step)))
-              step
-              nil))
 
 (define* (worker work-Q results-Q)
   ;; Each worker repeatedly gets a line number from work-Q, calculates all
@@ -521,7 +500,7 @@
   (begin
     (define (calc-line x-left y-coor results)
       (if (< x-left half)
-          (calc-line (+ x-left dot-size)
+          (calc-line (+ x-left pen-size)
                      y-coor
                      (cons (list->vector (trace-ray
                                           (list (/ x-left canv-size)
@@ -560,7 +539,7 @@
           nil
           (begin
             (queue-put work-Q top)
-            (init-work-Q (- top dot-size) bottom))))
+            (init-work-Q (- top pen-size) bottom))))
     (init-work-Q y-top y-bottom)
 
     (define workers (spawn-workers n-processors))
@@ -583,7 +562,7 @@
                 (begin
                   (draw-points results)
 
-                  (set! completed-lines (+ completed-lines dot-size))
+                  (set! completed-lines (+ completed-lines pen-size))
                   (print (* (/ completed-lines canv-size) 100))
 
                   (get-draw-repeat))))))
@@ -604,13 +583,27 @@
                            (if (< index 0) nil
                                (begin (set-color
                                        (vector->list (vector-ref colors index)))
-                                      (fd dot-size)
+                                      (fd pen-size)
                                       (draw-point (- index 1))))))
     (draw-point (- (vector-length colors) 1))
     (update)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (range from to step)
+  ;;return a list of all multiples of STEP in the range [FROM, TO], inclusive
+  ;;(range 1 5 1) => (1 2 3 4 5)
+  ;;(range 1 5 2) => (1 3 5)
+  (define (range-iter from to step accum)
+    (if (< to from)
+        accum
+        (range-iter from (- to step) step (cons to accum))))
+  (range-iter from
+              (if (= (modulo (- to from) step) 0)
+                  to
+                  (- to (modulo (- to from) step)))
+              step
+              nil))
+
+;;end multiprocessing code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (set-color colors) (color (in-255 (car colors))
@@ -624,7 +617,7 @@
         (pendown)
         (draw-x (- half) half)
         (penup)
-        (draw-y (- y-top dot-size) y-bottom))))
+        (draw-y (- y-top pen-size) y-bottom))))
 
 (define draw-x (mu* (x-left x-right)
                               (if (< x-left x-right)
@@ -632,11 +625,11 @@
                                     (define new-color (trace-ray
                                                        (list (/ x-left canv-size) (/ y-top canv-size) 1)))
                                     (set-color new-color)
-                                    (fd dot-size)
-                                    (draw-x (+ x-left dot-size) x-right)))))
+                                    (fd pen-size)
+                                    (draw-x (+ x-left pen-size) x-right)))))
 
 (define (draw) (speed 0)
-  (pensize dot-size)
+  (pensize pen-size)
   (setheading 90)
 
   (find-spheres)
@@ -668,4 +661,3 @@
   (time-eval (draw)))
 
 (print (list 'expansion 'time: (- (time) load-start-time) 'seconds))
-(print (list 'number 'of 'rays 'shot: number-of-rays))

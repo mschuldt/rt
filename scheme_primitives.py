@@ -233,7 +233,7 @@ def scheme_abs(val):
     _check_nums(val)
     return abs(val)
 
-@primitive("max") 
+@primitive("max")
 def scheme_max(a, b):
     """Takes max of two values."""
     _check_nums(a, b)
@@ -350,24 +350,24 @@ def _tscheme_prep():
         turtle.mode('logo')
         turtle.setundobuffer(0)
         turtle.shape("turtle")
-        turtle.screensize(600, 600)
+        turtle.screensize(800, 800)
         turtle.setundobuffer(0)
-        #turtle.tracer(500) ;;this is slower
-        turtle.tracer(0) 
+        turtle.tracer(0)
 
-        
+
 @primitive("update")
 def tscheme_update():
     _tscheme_prep()
     turtle.update()
     return okay
-    
+
 @primitive("tracer")
 def tscheme_tracer(num):
     _check_nums(num)
     _tscheme_prep()
     turtle.tracer(num)
-    
+    return okay
+
 @primitive("forward", "fd")
 def tscheme_forward(n):
     """Move the turtle forward a distance N units on the current heading."""
@@ -424,20 +424,6 @@ def tscheme_setposition(x, y):
     turtle.setposition(x, y)
     return okay
 
-@primitive("setx")
-def tscheme_setx(x):
-    _check_nums(x)
-    _tscheme_prep()
-    turtle.setx(x)
-    return okay
-
-@primitive("sety")
-def tscheme_sety(y):
-    _check_nums(y)
-    _tscheme_prep()
-    turtle.sety(y)
-    return okay
-
 @primitive("setheading", "seth")
 def tscheme_setheading(h):
     """Set the turtle's heading H degrees clockwise from north (up)."""
@@ -490,11 +476,13 @@ def tscheme_clear():
 
 @primitive("color")
 def tscheme_color(r, g, b):
-    """Set the color to C, a string such as '"red"' or '"#ffc0c0"' (representing
-    hexadecimal red, green, and blue values."""
+    """Set the color to integers R, G, B in a range 0 to 255"""
     _tscheme_prep()
     _check_nums(r, g, b)
-    turtle.color(r, g, b)
+    try:
+        turtle.color(r, g, b)
+    except Exception as e:
+        raise SchemeError(e)
     return okay
 
 @primitive("begin_fill")
@@ -529,14 +517,6 @@ def tscheme_speed(s):
     check_type(s, scheme_integerp, 0, "speed")
     _tscheme_prep()
     turtle.speed(s)
-    return okay
-
-
-@primitive("dot")
-def tscheme_dot(size, r=0, g=0, b=0):
-    _tscheme_prep()
-    _check_nums(r, g, b)
-    turtle.dot(size, (r, g, b))
     return okay
 
 from time import time
@@ -593,7 +573,7 @@ def scheme_vector_ref(vec, pos):
 @primitive("make-vector")
 def scheme_make_vector(num, init = nil):
     return Vector(init for _ in range(num))
-    
+
 @primitive("list->vector")
 def scheme_list_to_vector(form):
     lst = []
@@ -601,7 +581,7 @@ def scheme_list_to_vector(form):
         lst.append(form.first)
         form = form.second
     return Vector(lst)
-    
+
 @primitive("vector->list")
 def scheme_vector_to_list(vec):
     vec = vec[::-1]
@@ -613,8 +593,7 @@ def scheme_vector_to_list(vec):
 @primitive("vector-length")
 def scheme_vector_length(form):
     return len(form)
-    
-    
+
 @primitive("to-string")
 def scheme_to_string(expr):
     "cast EXPR to string"
