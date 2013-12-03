@@ -498,10 +498,11 @@ class Async:
         
     def start(self):
         self.process.start()
-#TODO: how to force stop? pause?        
+        
     def get(self):
-        self.process.join() #necessary?
+        self.process.join()
         return self.queue.get()
+        
     def join(self):
         self.process.join()
         return okay
@@ -523,7 +524,6 @@ def async_start (process):
     SchemeError("Invalid async process: {0}".format(process))
 
 def scheme_async(func, args, env):
-    #TODO: check FUNC validity
     return Async(func, args, env)
 
 @primitive("async-get")
@@ -538,7 +538,6 @@ def async_get(process):
         return process.join()
     SchemeError("Invalid async process: {0}".format(process))
         
-
 
 class Scheme_queue:
     def __init__(self):
@@ -564,7 +563,7 @@ def scheme_queue_p(thing):
     return isinstance(thing, Scheme_queue)
 
 @primitive("queue-put")
-def scheme_queue_put(queue, thing): #TODO: check if thing is valid (non-mutable)
+def scheme_queue_put(queue, thing):
     if scheme_queue_p(queue):
         return queue.put(thing)
     SchemeError("Invalid queue: {0}".format(queue))

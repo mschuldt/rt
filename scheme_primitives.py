@@ -529,24 +529,6 @@ def scheme_okay_p(expr):
     """test if EXPR is 'okay'"""
     return True if expr is okay else False
 
-@primitive("type-of")
-def scheme_type_of(expr):
-    """return the type of EXPR"""
-    if scheme_booleanp(expr):
-        return 'boolean'
-    elif scheme_stringp(expr):
-        return 'string'
-    elif scheme_symbolp(expr):
-        return 'symbol'
-    elif scheme_numberp(expr):
-        return 'number'
-    elif scheme_listp(expr):
-        return 'list'
-    elif scheme_pairp(expr):
-        return 'pair'
-    elif scheme_okay_p(expr):
-        return 'okay'
-    return type(expr)
 
 
 class Vector(tuple):
@@ -555,7 +537,7 @@ class Vector(tuple):
     def __repr__(self):
         if not self: return "scheme_vector()"
         if len(self) == 1: return "scheme_vector({0})".format(str(self[0]))
-        return "scheme_vector(" + str(self[0]) +", " + ", ".join(map(str, self[1:])) + ")" #FIX: this does not work for strings: scheme_vector("hi") => scheme_vector(hi)
+        return "scheme_vector(" + str(self[0]) +", " + ", ".join(map(str, self[1:])) + ")" 
 
 #TODO: type checking for all vector primitives
 @primitive("vector")
@@ -568,7 +550,12 @@ def scheme_vector_p(form):
 
 @primitive("vector-ref")
 def scheme_vector_ref(vec, pos):
+    if not scheme_vector_p(vec):
+        SchemeError("invalid vector {0}".format(vec))
+    if not scheme_integerp(pos):
+        SchemeError("invalid index {0}".format(pos))        
     return vec[pos]
+
 
 @primitive("make-vector")
 def scheme_make_vector(num, init = nil):
@@ -576,23 +563,32 @@ def scheme_make_vector(num, init = nil):
 
 @primitive("list->vector")
 def scheme_list_to_vector(form):
-    lst = []
-    while form is not nil:
-        lst.append(form.first)
-        form = form.second
-    return Vector(lst)
+    if scheme_listp(form):
+        lst = []
+        while form is not nil:
+            lst.append(form.first)
+            form = form.second
+        return Vector(lst)
+    else:
+        SchemeError("invalid list {0}".format(form))
 
 @primitive("vector->list")
 def scheme_vector_to_list(vec):
-    vec = vec[::-1]
-    new = Pair(vec[0], nil)
-    for elem in vec[1:]:
-        new = Pair(elem, new)
-    return new
+    if scheme_vector_p(vec):       
+        vec = vec[::-1]
+        new = Pair(vec[0], nil)
+        for elem in vec[1:]:
+            new = Pair(elem, new)
+        return new
+    else:
+        SchemeError("invalid vector {0}".format(vec))
 
 @primitive("vector-length")
 def scheme_vector_length(form):
-    return len(form)
+    if scheme_vector_p(form):       
+        return len(form)
+    else:
+        SchemeError("invalid vector {0}".format(form))
 
 @primitive("to-string")
 def scheme_to_string(expr):
