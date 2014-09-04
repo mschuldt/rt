@@ -4,9 +4,8 @@
 Winner of the UC Berkeley fall 2013 CS61A Recursive Art Contest (heavyweight division)
 
 #### Contributors:
-**Raytracing:** [Andrey Elenskiy](https://github.com/Timoha)
-
-**Multiprocessing and scene setup:** [Michael Schuldt](https://github.com/mschuldt)
++ Raytracing: [Andrey Elenskiy](https://github.com/Timoha)
++ Multiprocessing and scene setup: [Michael Schuldt](https://github.com/mschuldt)
 
 ![screenshot](screenshot.png)
 
